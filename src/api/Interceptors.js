@@ -1,6 +1,7 @@
 //业务处理函数封装
 
-import { message } from '@/base/message.js'
+import {message} from '@/base/message.js'
+import {getCookie} from "utils/stroageController.js";
 
 export const handleRequestHeader = (config) => {
     config['xxxx'] = 'xxx'
@@ -17,7 +18,7 @@ export const handleNetworkError = (errStatus) => {
     if (errStatus) {
         switch (errStatus) {
             case 400:
-                errMessage = '错误的请求'
+                errMessage = '认证失败'
                 break
             case 401:
                 errMessage = '未授权，请重新登录'
@@ -59,7 +60,7 @@ export const handleNetworkError = (errStatus) => {
         errMessage = `无法连接到服务器！`
     }
 
-    message.error('网络错误'+errMessage)
+    message.error('网络错误：' + errMessage)
 }
 
 export const handleAuthError = (errno) => {
@@ -77,7 +78,7 @@ export const handleAuthError = (errno) => {
     if (authErrMap.hasOwnProperty(errno)) {
         message.error(authErrMap[errno])
         // 授权错误，登出账户
-        logout()
+        // logout()
         return false
     }
 
@@ -93,10 +94,12 @@ export const handleGeneralError = (code, errors) => {
     return true
 }
 
-export const handleChangeRequestHeader = (params) => {
+export const handleChangeRequestHeader = (config) => {
 
+    return config
 }
 
-export const handleConfigureAuth = (params) => {
-
+export const handleConfigureAuth = (config) => {
+    config.params.cookie = `MUSIC_U=${getCookie('MUSIC_U')}`
+    return config
 }

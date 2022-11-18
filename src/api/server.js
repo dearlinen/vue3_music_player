@@ -14,23 +14,27 @@ import {
 
 
 const instance = axios.create({
-    baseURL: 'https://service-avjb2msn-1252084378.sh.apigw.tencentcs.com/release',
+    baseURL: 'http://localhost:3000',
+    withCredentials:true,
     timeout: 1000,
 });
 
 // instance.interceptors.request.use(config => {
+//
 //     config = handleChangeRequestHeader(config)
 //     config = handleConfigureAuth(config)
 //     return config
 // })
 
 instance.interceptors.response.use(response => {
-        if (response.status !== 200) return Promise.reject(response.data)
-        handleGeneralError(response.data.code, response.data.msg)
-        return response.data.result
+        if (response.status !== 200&&response.status!==304) {
+
+            return Promise.reject(response.data)
+        }
+        // handleGeneralError(response.data.code, response.data.msg)
+        return response.data
     },
     err => {
-        console.log(err)
         handleNetworkError(err.response.status)
         return Promise.reject(err.response)
     }

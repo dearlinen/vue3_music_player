@@ -4,20 +4,25 @@
   padding: 4px !important;
   font-size: $font-size-sm !important;
 }
+
 .el-table::before {
   height: 0 !important;
 }
+
 .el-table--enable-row-hover .el-table__body tr:hover > td {
   background-color: var(--playlist-hover-bgcolor) !important;
 }
+
 // 空数据
 .el-table__empty-block {
   background: var(--body-bgcolor);
   color: var(--font-color);
 }
+
 .el-table__header-wrapper th {
   color: var(--font-color);
 }
+
 .el-table {
   background-color: var(--body-bgcolor) !important;
 }
@@ -36,6 +41,7 @@
     }
   }
 }
+
 .el-table,
 .el-table {
   @include el-td-style(var(--body-bgcolor));
@@ -44,6 +50,7 @@
     @include el-td-style(var(--stripe-bg));
   }
 }
+
 // 允许外部在某个类下面覆写table样式
 @mixin el-table-theme($color, $stripe-color: var(--stripe-bg)) {
   :deep(.el-table) {
@@ -54,10 +61,12 @@
     }
   }
 }
+
 // carosel
 .el-carousel--horizontal {
   overflow: hidden;
 }
+
 
 // popover
 @each $direction in 'bottom' 'top' 'left' 'right' {
@@ -66,6 +75,7 @@
     border-#{$direction}-color: var(--prompt-bg-color) !important;
   }
 }
+
 .el-popover {
   background: var(--prompt-bg-color) !important;
   border: none !important;
@@ -76,7 +86,7 @@
 // input
 $input-height: 24px;
 @mixin el-input-style($color, $bg-color, $placeholder-color) {
-  .el-input__inner {
+  .el-input__inner .el-input__wrapper {
     height: $input-height !important;
     line-height: $input-height !important;
     background: #{$bg-color} !important;
@@ -154,10 +164,23 @@ $input-height: 24px;
   circle {
     stroke: $theme-color !important;
   }
+
   .el-loading-text {
     color: $theme-color !important;
   }
+
   .el-icon-loading {
     color: $theme-color !important;
+  }
+}
+
+.el-slider {
+  .el-slider__button {
+    background: $theme-color !important;
+    border: 6px solid $white !important;
+  }
+
+  .el-slider__bar {
+    background-color: $theme-color !important;
   }
 }

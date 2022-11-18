@@ -16,7 +16,6 @@ const {text, highlight} = defineProps({
 
 const highlightText = computed(() => {
   const reg = new RegExp(highlight, 'gi');
-  console.log(text,highlight)
   return text.replace(reg, `<span class="high-light-text">${highlight}</span>`)
 })
 

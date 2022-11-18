@@ -7,7 +7,7 @@ export const getSongUrl = async (id) => await Get("/song/url", { id });
 export const getSongDetail = async (ids) => await Get("/song/detail", { ids });
 
 //热歌
-export const getTopSongs = async (type) => await Get("/top/song", { type });
+export const getTopSong = async (type) => await Get("/top/song", { type });
 
 //相似歌曲
 export const getSimiSongs = async (id) => await Get("/simi/song", { id });

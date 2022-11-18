@@ -1,23 +1,93 @@
+<script setup>
+import Search from "@/components/header/Search.vue";
+import Theme from "@/components/header/Theme.vue";
+import RouterHistory from "@/components/header/RouterHistory.vue";
+import {useRouter} from "vue-router";
+import BaseIcon from "@/base/BaseIcon.vue";
+
+import {ref} from 'vue'
+import {exitFullscreen, isFullscreen, setWindowFullScreen} from "utils/styleTools.js";
+
+const router = useRouter()
+const isPlayerShow = ref(false)
+
+const onClickLogo = () => {
+  router.push({name: 'Home'})
+}
+
+const onClickDown = () => {
+  console.log('onClickDown')
+}
+const handleExitFullscreen = () => {
+  if (isFullscreen()) {
+    exitFullscreen();
+  }
+}
+
+const handleFullscreen = () => {
+  if (isFullscreen()) {
+    exitFullscreen()
+  } else {
+    setWindowFullScreen()
+  }
+}
+
+
+</script>
+
+
 <template>
   <div class="header">
     <div class="left">
-      left
+
+      <div class="buttons">
+        <div
+            @click="onClickLogo"
+            class="mac-button red"
+        >
+          <BaseIcon
+              :size="9"
+              type="play"/>
+        </div>
+        <div
+            @click="handleExitFullscreen"
+            class="mac-button yellow"
+        >
+          <BaseIcon
+              :size="9"
+              type="play"/>
+        </div>
+        <div
+            @click="handleFullscreen"
+            class="mac-button green"
+        >
+          <BaseIcon
+              :size="9"
+              type="play"/>
+        </div>
+      </div>
+
+      <div
+          @click="onClickDown"
+          class="shrink-player"
+          v-if="isPlayerShow"
+      >
+        <BaseIcon
+            :size="9"
+            type="arrow-right"/>
+      </div>
+
+
+<!--      <RouterHistory/>-->
     </div>
     <div class="right">
-      right
-      <Search/>
+      <div class="search-wrap">
+        <Search/>
+      </div>
+      <theme/>
     </div>
   </div>
 </template>
-
-<script>
-import Search from "@/components/header/Search.vue";
-export default {
-  name: "LayoutHeader",
-  components: {Search}
-
-}
-</script>
 
 <style lang="scss" scoped>
 @import "@/style/element-overwrite.scss";

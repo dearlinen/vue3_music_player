@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onMounted, ref} from "vue";
+import {computed, nextTick, onMounted, ref} from "vue";
 import {getSearchHistory, setSearchHistory} from "utils/stroageController.js";
 import {useRouter} from "vue-router";
 import {message} from "@/base/message.js";
@@ -7,6 +7,7 @@ import BaseIcon from "@/base/BaseIcon.vue";
 import {getSearchHot, getSearchSuggestions} from "@/api/public/search.js";
 import HighlightText from "@/base/HighlightText.vue";
 import {debounce} from "utils/debounce.js";
+import {useMusicStore} from "@/store/music/music.js";
 
 const searPanelShow = ref(false);
 const searchKeyword = ref('');
@@ -16,52 +17,64 @@ const searchSuggestion = ref([]);
 const suggestionOrder = ref([])
 
 const router = useRouter()
-
-
-const fetchHot = async () => {
-  const [err, res] = await getSearchHot();
-  if (err) {
-    message.error('获取热搜失败');
-    return;
-  }
-  searchHot.value = res.hots;
-}
+const musicStore = useMusicStore()
 
 onMounted(
-    () => {
-      if (searchHot.value.length === 0) {
-        fetchHot();
+    async () => {
+      const [err, res] = await getSearchHot();
+      if (err) {
+        message.error('获取热搜失败');
+        return;
       }
+      searchHot.value = res.result.hots;
     }
 )
 
+const suggestionPanelShow = computed(() => {
+  return suggestionOrder && suggestionOrder.value.length > 0
+})
+
+
 const search = (keyword) => {
-  if (keyword) {
-    searchHistory.value.unshift(keyword);
-    searchHistory.value = [...new Set(searchHistory.value)];
-    setSearchHistory(searchHistory.value)
-    searchKeyword.value = '';
-    router.push('/search/' + keyword)
-  } else {
-    message.error('请输入搜索关键字')
-  }
-}
+      if (keyword) {
+        searchHistory.value.unshift(keyword);
+        searchHistory.value = [...new Set(searchHistory.value)];
+        setSearchHistory(searchHistory.value)
+        searchKeyword.value = '';
+        router.push({name: 'searchSong', params: {keyword}})
+      } else {
+        message.error('请输入搜索关键字')
+      }
+    },
+    formatSuggestionTitle = (title) => {
+      switch (title) {
+        case 'artists':
+          return '歌手';
+        case 'albums':
+          return '专辑';
+        case 'songs':
+          return '单曲';
+        case 'playlists':
+          return '歌单';
+      }
+    }
 
 
 const handleInputFocus = () => {
       searPanelShow.value = true;
     },
     handleInputBlur = () => {
-      searPanelShow.value = false;
+      setTimeout(() => {
+        searPanelShow.value = false;
+      }, 200)
     },
     handleEnter = () => {
-      search();
+      search(searchKeyword.value);
     },
-    handleSuggestionsClick = (id,type) => {
-      console.log([id, type])
+    handleSuggestionsClick = (id, type) => {
       switch (type) {
         case 'songs':
-          router.push(`/song/${id}`)
+          musicStore.startPlay(id)
           break;
         case 'albums':
           router.push(`/album/${id}`)
@@ -74,22 +87,26 @@ const handleInputFocus = () => {
           break;
       }
     },
-    handleSearchKeywordChange = e => {
+    handleSearchKeywordChange = keyword => {
+
       const getSuggestion = debounce(async () => {
-        const [err, res] = await getSearchSuggestions(e);
+        const [err, res] = await getSearchSuggestions(keyword);
         if (err) {
           message.error('获取搜索建议失败');
           return;
         }
-        const suggestionList = res;
-        searchSuggestion.value =suggestionList
+        const suggestionList = res.result;
+        searchSuggestion.value = suggestionList
         suggestionOrder.value = suggestionList.order
-      }, 500)
+      }, 1000)
 
-      getSuggestion()
 
+      if (keyword) {
+        getSuggestion()
+      }
 
     }
+
 
 </script>
 
@@ -98,10 +115,10 @@ const handleInputFocus = () => {
   <div class="search">
     <el-input
         @focus="handleInputFocus"
+        @blur="handleInputBlur"
         @keyup.enter="handleEnter"
         @input="handleSearchKeywordChange"
         placeholder="搜索歌名，歌单，艺术家"
-        prefix-icon="el-icon-search"
         v-model="searchKeyword"
     />
 
@@ -110,17 +127,22 @@ const handleInputFocus = () => {
           class="search-suggestion"
           v-if="searchKeyword"
       >
+        <!--// 搜索建议列表-->
+        <!--// order: ["songs", "albums", "artists", "playlists"]，分别对应歌曲，专辑，歌手，歌单-->
+        <!--// order若无值，则不显示-->
         <div
             class="suggest-item"
             v-for="order in suggestionOrder"
             :key="order"
-            v-if="suggestionOrder.length"
+            v-if="suggestionPanelShow"
         >
           <div>
             <div class="title">
               <!--            <BaseIcon/>-->
-              {{ order }}
+              {{ formatSuggestionTitle(order) }}
             </div>
+
+            <!--// 使用order作为key，获取对应的搜索建议列表-->
             <ul class="list">
               <li
                   class="item"
@@ -143,6 +165,7 @@ const handleInputFocus = () => {
         </div>
       </div>
 
+      <!--// 热搜以及搜索历史列表-->
       <div
           class="search-hots"
           v-else
@@ -163,15 +186,15 @@ const handleInputFocus = () => {
         </div>
         <div class="block">
           <p class="title">搜索历史</p>
-          <div class="tags"
-               v-if="searchHistory.length"
+          <div
+              class="tags"
+              v-if="searchHistory.length"
           >
             <span
-                v-for="history in searchHistory.value"
+                v-for="history in searchHistory"
                 class="button"
             >
               {{ history }}
-
             </span>
           </div>
         </div>
@@ -185,6 +208,7 @@ const handleInputFocus = () => {
 .search {
   position: relative;
   width: 150px;
+  opacity: 1 !important;
 
   .search-panel {
     position: fixed;
@@ -211,10 +235,24 @@ const handleInputFocus = () => {
         flex-wrap: wrap;
 
         .button {
+
+          display: inline-block;
+          padding: 5px 16px;
           margin-bottom: 12px;
           margin-right: 6px;
           font-size: $font-size-sm;
+          border: 1px solid var(--button-border-color);
+          border-radius: 2px;
+          text-align: center;
+          cursor: pointer;
+
+          &:hover {
+            background: var(--button-hover-bgcolor);
+          }
+
         }
+
+
       }
 
       .empty {
@@ -228,6 +266,7 @@ const handleInputFocus = () => {
     .suggest-item {
       margin-bottom: 16px;
 
+
       .title {
         margin: 16px 8px 8px;
         color: var(--font-color-grey-shallow);
@@ -240,7 +279,7 @@ const handleInputFocus = () => {
           @include text-ellipsis();
 
           &:hover {
-            background: red;
+            background: var(--light-bgcolor);
           }
         }
       }

@@ -8,7 +8,7 @@ export const getPlaylists = async (uid) => await Get("/user/playlist", { uid })
 
 
 //获取精品歌单
-export const getTopPlaylists = async (cat, limit, offset) => await Get("/top/playlist/highquality", { cat, limit, offset })
+export const getTopPlaylist = async (cat, limit, offset) => await Get("/top/playlist/highquality", { cat, limit, offset })
 
 //相关歌单推荐
 export const getRelatedPlaylists = async (id) => await Get("/related/playlist", { id })

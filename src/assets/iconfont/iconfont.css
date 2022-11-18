@@ -1,0 +1,89 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 3751207 */
+  src: url('./iconfont.ttf') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-volume:before {
+  content: "\e6e3";
+}
+
+.icon-pause:before {
+  content: "\e80d";
+}
+
+.icon-play:before {
+  content: "\e645";
+}
+
+.icon-loop:before {
+  content: "\e66d";
+}
+
+.icon-user:before {
+  content: "\e7ae";
+}
+
+.icon-playlist:before {
+  content: "\e7eb";
+}
+
+.icon-arrow-up:before {
+  content: "\e7cf";
+}
+
+.icon-albums:before {
+  content: "\e705";
+}
+
+.icon-arrow-back:before {
+  content: "\e706";
+}
+
+.icon-arrow-forward:before {
+  content: "\e708";
+}
+
+.icon-list:before {
+  content: "\e745";
+}
+
+.icon-musical-note:before {
+  content: "\e74f";
+}
+
+.icon-repeat:before {
+  content: "\e768";
+}
+
+.icon-shuffle:before {
+  content: "\e76f";
+}
+
+.icon-volume-high:before {
+  content: "\e78c";
+}
+
+.icon-volume-low:before {
+  content: "\e6f4";
+}
+
+.icon-volume-off:before {
+  content: "\e8e7";
+}
+
+.icon-mv-fill:before {
+  content: "\eef0";
+}
+
+.icon-ic_music:before {
+  content: "\e6bf";
+}
+

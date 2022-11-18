@@ -2,7 +2,7 @@ import {Get} from "@/api/server.js";
 
 
 //banner
-export const getBanner = async () => await Get("/banner");
+export const getBanner = async () => await Get("/banner", {type: 0});
 
 //推荐歌单
 export const getPersonalized = async (limit) => await Get("/personalized", { limit });

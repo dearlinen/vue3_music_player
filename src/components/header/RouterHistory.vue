@@ -12,15 +12,22 @@ const forward = () => router.forward()
 
 <template>
   <div class="routes-history">
-    <base-icon
-        backdrop={true}
-        type="back"
-        @click="goBack"
+    <BaseIcon
+        type="arrow-back"
     />
-    <base-icon
-        backdrop={true}
-        type="forward"
-        @click="forward"
+    <BaseIcon
+        type="arrow-forward"
     />
   </div>
 </template>
+
+<style lang="scss" scoped>
+.routes-history {
+  display: flex;
+
+
+  .icon {
+    margin-right: 16px;
+  }
+}
+</style>

@@ -12,6 +12,7 @@ const pinia = createPinia()
 import '@/style/reset.scss'
 import '@/style/app.scss'
 import '@/style/element-overwrite.scss'
+import '@/assets/iconfont/iconfont.css'
 
 const app = createApp(App)
 

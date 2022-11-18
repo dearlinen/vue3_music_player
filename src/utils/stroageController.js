@@ -1,20 +1,20 @@
-
 const storageKey = {
-    playHistory:'__play_history__',
-    uid:'__uid__',
-    volume:'__volume__',
-    searchHistory:'__search_history__',
+    playHistory: '__play_history__',
+    uid: '__uid__',
+    volume: '__volume__',
+    searchHistory: '__search_history__',
+    theme: '__theme__',
+    playMode: '__play_mode__',
 }
 
 
-function setStorage(key, value) {
+export function setStorage(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
 }
 
-function getStorage(key) {
+export function getStorage(key) {
     return JSON.parse(localStorage.getItem(key));
 }
-
 
 
 export const setPlayHistory = (history) => {
@@ -41,10 +41,31 @@ export const getSearchHistory = () => {
     return getStorage(storageKey.searchHistory)
 }
 
-export const setVolume = volume =>{
-    setStorage(storageKey.volume,volume)
+export const setVolume = volume => {
+    setStorage(storageKey.volume, volume)
 }
 
-export const getVolume = ()=>{
-    return getStorage(storageKey.volume)||0.75
+export const getVolume = () => {
+    return getStorage(storageKey.volume) || 0.75
+}
+
+export const setTheme = theme => {
+    setStorage(storageKey.theme, theme)
+}
+
+export const getTheme = () => {
+    return getStorage(storageKey.theme) || 'light'
+}
+
+export const setCookie = cookieStr => {
+    const cookies = cookieStr.split(';;')
+    cookies.map(cookie => {
+        document.cookie = cookie
+        const [cookieKey, cookieVal] = cookie.split(';')[0].split('=')
+        setStorage(`__cookie-${cookieKey}__`, cookieVal)
+    })
+}
+
+export const getCookie = key => {
+    return getStorage(`__cookie-${key}__`)
 }

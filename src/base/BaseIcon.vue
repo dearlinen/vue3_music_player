@@ -1,5 +1,8 @@
 <script setup>
 
+import {toRem} from "utils/styleTools.js";
+import {ref} from "vue";
+
 const {backdrop, type, color, size} = defineProps(
     {
       size: {
@@ -16,27 +19,40 @@ const {backdrop, type, color, size} = defineProps(
       },
       color: {
         type: String,
+        default: ''
       },
     }
 )
 
+const classes = ref({})
+const styles = ref({})
+
 const emit = defineEmits(['btnClick'])
 
-const handleBtnClick = () => {
-  emit('btnClick')
-}
 
-const getIconCls = () => {
-  let cls = `icon-${this.type}`
+const getIconClass = () => {
+  if (backdrop) {
+    return 'backdrop'
+  }
+  let cls = `icon-${type}`
   cls += ' iconfont icon-component '
-  if (this.color) {
-    cls += `icon-color-${this.color}`
+  if (color) {
+    cls += `icon-color-${color}`
   }
   return cls
 }
 
 
 const getIconStyle = () => {
+
+  if (backdrop) {
+    const backDropSize = toRem(size * 1.56)
+    return {
+      width: toRem(backDropSize),
+      height: toRem(backDropSize),
+    }
+  }
+
   const chromeMinSize = 12;
   // 支持小于12px
   const retStyle = {fontSize: toRem(size)};
@@ -46,11 +62,13 @@ const getIconStyle = () => {
   }
   return retStyle;
 }
-const [classes,styles] = [getIconCls(),getIconStyle()]
+
+classes.value = getIconClass()
+styles.value = getIconStyle()
+
 </script>
 
 <template>
-
   <div
       :class='classes'
       :style='styles'
