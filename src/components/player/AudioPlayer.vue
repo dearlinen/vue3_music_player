@@ -7,74 +7,162 @@ import BaseIcon from '@/base/BaseIcon.vue'
 import VolumeSlider from "@/components/audioControll/VolumeSlider.vue";
 import TimeSlider from "@/components/audioControll/TimeSlider.vue";
 import {storeToRefs} from "pinia";
+import {usePlayMode} from "@/components/player/usePlayMode.js";
 
 const musicStore = useMusicStore()
 
 const audioEl = ref(null);
 const volume = ref(getVolume() || 1)
 const songReady = ref(false)
-const audioSrc = ref('')
-const hasCurrentSong = ref(false)
+
 const playerSHow = ref(false)
+const playedTime = ref(0)
 
-const playing = ref(false)
 
-const togglePlayerShow = () => {
-  playerSHow.value = !playerSHow.value
+const {currentSong, playlist, currentTime, playMode, isPlaying} = storeToRefs(musicStore)
+
+const {modIcon, mode} = usePlayMode(playMode.value)
+
+
+// audio元素事件
+const handleEnded = () => {
+  handleNextClick()
+}
+
+const handleCanPlay = () => {
+  songReady.value = true
+}
+
+const handleTimeUpdate = (e) => {
+  musicStore.setCurrentTime(e.target.currentTime)
+  playedTime.value = e.target.currentTime
 }
 
 
-const {currentSong, playlist,currentTime} = storeToRefs(musicStore)
-
-watch(
-    () => [currentSong.value,currentTime.value],
-    ([song],[time]) => {
-      // console.log('watch currentSong', newVal, oldVal)
-      // if (newVal['url']) {
-      //   console.log('url', newVal.url)
-      //   audioEl.value.src = newVal.url
-      //   audioEl.value.play()
-      //   playing.value = true
-      // }
-      // audioEl.value.currentTime = time
-      // console.info(time)
-    }
-)
+//控制事件
+const handleMainBtnClick = () => {
+  if (isPlaying.value) {
+    musicStore.setIsPlaying(false)
+  } else {
+    musicStore.setIsPlaying(true)
+  }
+}
 
 
-// audio element event
-const handleEnded = () => {
-      // musicStore.setPlayingState(false)
-      // musicStore.setPlayMode(playModeMap.sequence)
-      // musicStore.setPlayList([])
-      // musicStore.setCurrentIndex(-1)
-      // musicStore.setCurrentSong({})
-    },
-    handleTimeUpdate = (e) => {
-      currentTime.value = e.target.currentTime
-    },
-    handleCanPlay = () => {
-      songReady.value = true
-    }
+const handlePlaylistClick = () => {
+  console.log('playlist')
+}
 
-// time slider event
+const handleNextClick = () => {
+  if (playMode.value === 'single') {
+    audioEl.value.currentTime = 0
+    audioEl.value.play()
+  } else {
+    musicStore.playNext()
+  }
+}
+
+const handlePrevClick = () => {
+  if (playMode.value === 'single') {
+    audioEl.value.currentTime = 0
+    audioEl.value.play()
+  } else {
+    musicStore.playPrev()
+  }
+}
+
+
+//滑块事件
+const handleTimeInput = (newTime) => {
+  audioEl.value.currentTime = newTime
+}
 
 const handleVolumeChange = (newVolume) => {
   audioEl.value.volume = newVolume
 }
 
-const handleTimeChange = (newTime) => {
-  audioEl.value.currentTime = newTime
-}
 
+//侦听
+watch(currentSong, async (newSong) => {
+  console.log(newSong)
+  if (newSong) {
+    handleMediaSession(newSong.value)
+    songReady.value = false
+    musicStore.setCurrentTime(0)
+    const promise = audioEl.value.play()
+    promise
+        .then(() => {
+          songReady.value = true
+          audioPlay()
+        })
+        .catch((err) => {
+          console.log(err)
+        })
+  }
+})
+
+
+watch(isPlaying, (newVal) => {
+  console.log('watch play')
+  if (newVal) {
+    audioEl.value.src = currentSong.value.url
+    audioPlay()
+  } else {
+    audioPause()
+  }
+})
+
+
+// mediaSession
+
+const handleMediaSession = (currentSong) => {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.value.name,
+      artist: currentSong.value.ar[0].name,
+      album: currentSong.value.al.name,
+      artwork: [
+        {src: currentSong.value.al.picUrl, sizes: '96x96', type: 'image/png'},
+        {src: currentSong.value.al.picUrl, sizes: '128x128', type: 'image/png'},
+        {src: currentSong.value.al.picUrl, sizes: '192x192', type: 'image/png'},
+        {src: currentSong.value.al.picUrl, sizes: '256x256', type: 'image/png'},
+        {src: currentSong.value.al.picUrl, sizes: '384x384', type: 'image/png'},
+        {src: currentSong.value.al.picUrl, sizes: '512x512', type: 'image/png'},
+      ]
+    })
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      musicStore.setIsPlaying(true)
+    })
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      musicStore.setIsPlaying(false)
+    })
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      handlePrevClick()
+    })
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      handleNextClick()
+    })
+  }
+}
 
 // control button event
-const handlePlay = () => {
-  audioEl.value.play()
+
+const audioPlay = () => {
+  if (songReady.value) {
+    audioEl.value.play()
+  }
+}
+const audioPause = () => {
+  audioEl.value.pause()
 }
 
-const handlePlaylistClick = () => {
-  console.log('playlist')
+
+const toggleAlbumShow = () => {
+  musicStore.setAlbumShow(true)
 }
 </script>
 
@@ -115,22 +203,25 @@ const handlePlaylistClick = () => {
     </div>
     <!--     控制台-->
     <div class="control">
-      <BaseIcon type="arrow-back" :size="24" class="icon"/>
-      <div @click="handlePlay" class="play-icon" slot="reference">
-        <BaseIcon type="play" :size="24" />
+      <BaseIcon type="arrow-back" :size="24" class="icon" @click="handlePrevClick"/>
+      <div @click="handleMainBtnClick" class="play-icon" slot="reference">
+        <BaseIcon type="pause" :size="24" v-if="isPlaying"/>
+        <BaseIcon type="play" :size="24" v-else/>
       </div>
-      <BaseIcon type="arrow-forward" :size="24" class="icon"/>
+      <BaseIcon type="arrow-forward" :size="24" class="icon" @click="handleNextClick"/>
     </div>
     <!--     控制台结束-->
 
     <!--    模式切换和歌单-->
     <div class="mode">
       <!-- 模式 -->
-            <el-popover placement="top" trigger="hover" width="160">
-              <p>{{ playModeText }}</p>
+      <el-popover placement="top" trigger="click" width="160">
+        <p>{{ mode }}</p>
 
-            </el-popover>      <BaseIcon :size="20" @btnClick="handlePlaylistClick" type="playlist" class="mode-item"/>
-              <BaseIcon type="play" :size="20" class="mode-item"/>
+        <template #reference>
+          <BaseIcon :size="20" @btnClick="handlePlaylistClick" type="shuffle" class="mode-item"/>
+        </template>
+      </el-popover>
 
       <!-- 播放列表 -->
       <BaseIcon :size="20" @btnClick="handlePlaylistClick" type="playlist" class="mode-item"/>
@@ -138,19 +229,18 @@ const handlePlaylistClick = () => {
       <div class="volume-item">
         <VolumeSlider @volume-change="handleVolumeChange"/>
       </div>
-      <!-- github -->
-      <BaseIcon :size="20" type="github" class="mode-item" @btnClick="goGithub"/>
     </div>
     <!--    模式和歌单结束-->
     <!--     进度条-->
     <div class="progress-bar-wrap">
-      <TimeSlider @time-input="handleTimeInput" @time-change="handleTimeChange"/>
+      <TimeSlider :plyedTime="playedTime" @time-input="handleTimeInput"/>
     </div>
     <!--     进度条结束-->
     <audio
         @canplay="handleCanPlay"
         @ended="handleEnded"
         @timeupdate="handleTimeUpdate"
+        :src="currentSong.url"
         ref="audioEl"
     ></audio>
   </div>

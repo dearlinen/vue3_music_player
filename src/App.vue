@@ -3,9 +3,10 @@
 import Layout from "@/views/layout/Layout.vue";
 import {anonymousReg} from "@/api/user/login.js";
 import {extractResponse} from "utils/requestTools.js";
-import {setCookies} from "utils/cookieController.js";
+import {getCookie, setCookies} from "utils/cookieController.js";
 
 async function initAnonymousCookie() {
+  const local = getCookie()
   const cookies = extractResponse(await anonymousReg(), '获取临时身份错误')
   console.log('app cookie', cookies)
   if (cookies) {

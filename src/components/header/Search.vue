@@ -161,7 +161,7 @@ const handleInputFocus = () => {
         <div
             class="empty"
             v-else
-        >暂无搜索历史
+        >暂无搜索建议
         </div>
       </div>
 
@@ -171,7 +171,7 @@ const handleInputFocus = () => {
           v-else
       >
         <div class="block">
-          <p class="title">热门搜搜</p>
+          <p class="title">热门搜索</p>
           <div class="tags">
             <span
                 v-for="hot in searchHot"

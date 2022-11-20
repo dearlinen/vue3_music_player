@@ -10,6 +10,7 @@ export const useMusicStore = defineStore('music', {
         currentPlayIndex: 0,
         playlist: [],
         playHistory: [],
+        playMode: 'loop',
         currentTime: 0,
     }),
     getters: {

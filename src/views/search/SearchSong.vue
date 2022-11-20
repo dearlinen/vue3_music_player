@@ -8,6 +8,7 @@ import SearchTitle from "@/base/SearchTitle.vue";
 
 import {useRouter} from "vue-router";
 import {useMusicStore} from "@/store/music/music.js";
+import {formatDuration, formatIndex, formatSongData} from "utils/publicTools.js";
 
 const router = useRouter()
 const musicStore = useMusicStore()
@@ -23,43 +24,19 @@ const getData = async (page) => {
   const [err, res] = await getSearch(keyword.value, pageSize.value, page || 1, 1)
   if (err) {
     // 获取数据失败，退出执行
-    message.error('获取搜索结果失败');
+    message.error('获取搜索结果失败',err);
     return;
   }
-
-  // 格式化歌曲持续时间
-  const formatMS = (time) => {
-    let h = Math.floor(time / 1000 / 60 / 60)
-    let m = Math.floor(time / 1000 / 60 % 60)
-    let s = formatIndex(Math.floor(time / 1000 % 60))
-    return h ? `${h}:${m}:${s}` : `${m}:${s}`
-
+  if (typeof res.result === 'string'){
+    message.error('获取搜索结果失败,请求频繁');
+    return;
   }
-
-  //格式化个位数 7=>07
-  const formatIndex = (index) => {
-    return index < 10 ? `0${index}` : pageSize.value * (currentPage.value - 1) + index
-  }
-
   // 获取数据成功，更新数据
 
   const {songs, songCount} = res.result
   tableData.value = songs.map((item, index) => {
     // 格式化歌曲数据
-    return {
-      name: item.name,
-      alias: item.alia[0] || '',
-      count: formatIndex(index + 1),
-      id: item.id,
-      artist: item.ar.map(item => item.name).join('/'),
-      artistID:item.ar.map(item => item.id),
-      album: item.al.name,
-      albumID: item.al.id,
-      albumPic: item.al.picUrl,
-      rawDuration: item.dt,
-      duration: formatMS(item.dt),
-      mv: item.mv
-    }
+    return formatSongData(item,index,pageSize.value,currentPage.value)
   })
   // 更新总条数
   total.value = songCount
@@ -78,7 +55,7 @@ const handlePageChange = (page) => {
       getData(page)
     },
     handleSongClick = (row) => {
-      musicStore.startPlay(row.id)
+      musicStore.startPlay(row)
     },
     handleAlbumClick = (row) => {
       router.push(`/album/${row.albumID}`)
@@ -101,7 +78,7 @@ const handlePageChange = (page) => {
         </el-link>
       </template>
     </el-table-column>
-    <el-table-column label="歌手" width="150">
+    <el-table-column label="歌手" width="150" @click="handleArtistClick">
       <template #default="{row}">
         <el-link type="default">
           <span :title="row.artist">
@@ -111,7 +88,7 @@ const handlePageChange = (page) => {
     </el-table-column>
     <el-table-column label="专辑">
       <template #default="{row}">
-        <el-link type="default">
+        <el-link type="default" @click="handleAlbumClick">
           <span :title="row.album">{{ row.album }}</span>
         </el-link>
       </template>
