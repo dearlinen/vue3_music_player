@@ -3,7 +3,7 @@
 
 import {useMusicStore} from "@/store/music/music.js";
 import {storeToRefs} from "pinia";
-import {formatCurrentTime, formatDuration} from "utils/publicTools";
+import {formatCurrentTime, formatDuration} from "utils/publicTools.js";
 import {computed, watch} from "vue";
 
 const musicStore = useMusicStore()

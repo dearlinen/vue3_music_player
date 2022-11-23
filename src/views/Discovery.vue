@@ -1,9 +1,9 @@
 <script setup>
 
 
-import Banner from "@/views/discovery/Banner.vue";
-import TopSong from "@/views/discovery/TopSong.vue";
-import TopPlaylist from "@/views/discovery/TopPlaylist.vue";
+import Banner from "@/components/discovery/Banner.vue";
+import TopSong from "@/components/discovery/TopSong.vue";
+import TopPlaylist from "@/components/discovery/TopPlaylist.vue";
 </script>
 
 

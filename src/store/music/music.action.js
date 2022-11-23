@@ -12,14 +12,9 @@ export const musicAction = {
         else {
             const hasCurrentIndex = comparePlaylist(this.playlist, rawData);
             const songData = {...rawData, url: res.data[0].url}
-            if (this.playlist.length === 0) {
-                this.playlist.push(songData)
-                this.currentPlayIndex = 0
-                this.currentSong = songData
-                initMediaSession(songData)
-            } else if (hasCurrentIndex >= 0) {
-                this.playlist.push(songData);
+            if (this.playlist.length!==0 && hasCurrentIndex >= 0) {
                 this.currentPlayIndex = this.playlist.length - 1;
+                this.playlist.push(songData);
                 this.currentSong = songData;
             } else {
                 this.currentPlayIndex = hasCurrentIndex;
@@ -36,10 +31,10 @@ export const musicAction = {
             console.log('loop')
             if (this.currentPlayIndex === this.playlist.length - 1) {
                 this.currentPlayIndex = 0;
-                this.currentSong = this.playlist[this.currentPlayIndex];
+                this.currentSong = {...this.playlist[this.currentPlayIndex]};
             } else {
                 this.currentPlayIndex++;
-                this.currentSong = this.playlist[this.currentPlayIndex];
+                this.currentSong = {...this.playlist[this.currentPlayIndex]};
             }
         }
 
@@ -48,7 +43,7 @@ export const musicAction = {
             const filteredArr = this.playlist.slice().filter(item => item.id !== currentSongID);
             const randomIndex = Math.floor(Math.random() * filteredArr.length);
             const randomSong = filteredArr[randomIndex];
-            this.currentSong = randomSong;
+            this.currentSong = {...randomSong};
             this.currentPlayIndex = this.playlist.findIndex(item => item.id === randomSong.id);
         }
 

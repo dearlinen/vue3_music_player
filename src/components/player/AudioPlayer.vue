@@ -4,8 +4,8 @@ import {getVolume} from "utils/stroageController.js";
 
 import {useMusicStore} from '@/store/music/music.js'
 import BaseIcon from '@/base/BaseIcon.vue'
-import VolumeSlider from "@/components/audioControll/VolumeSlider.vue";
-import TimeSlider from "@/components/audioControll/TimeSlider.vue";
+import VolumeSlider from "@/components/player/audioControll/VolumeSlider.vue";
+import TimeSlider from "@/components/player/audioControll/TimeSlider.vue";
 import {storeToRefs} from "pinia";
 import {usePlayMode} from "@/components/player/usePlayMode.js";
 
@@ -86,7 +86,7 @@ const handleVolumeChange = (newVolume) => {
 watch(currentSong, async (newSong) => {
   console.log(newSong)
   if (newSong) {
-    handleMediaSession(newSong.value)
+    handleMediaSession(newSong)
     songReady.value = false
     musicStore.setCurrentTime(0)
     const promise = audioEl.value.play()
@@ -118,16 +118,16 @@ watch(isPlaying, (newVal) => {
 const handleMediaSession = (currentSong) => {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.value.name,
-      artist: currentSong.value.ar[0].name,
-      album: currentSong.value.al.name,
+      title: currentSong.name,
+      artist: currentSong.artist,
+      album: currentSong.album,
       artwork: [
-        {src: currentSong.value.al.picUrl, sizes: '96x96', type: 'image/png'},
-        {src: currentSong.value.al.picUrl, sizes: '128x128', type: 'image/png'},
-        {src: currentSong.value.al.picUrl, sizes: '192x192', type: 'image/png'},
-        {src: currentSong.value.al.picUrl, sizes: '256x256', type: 'image/png'},
-        {src: currentSong.value.al.picUrl, sizes: '384x384', type: 'image/png'},
-        {src: currentSong.value.al.picUrl, sizes: '512x512', type: 'image/png'},
+        {src: currentSong.albumPic, sizes: '96x96', type: 'image/png'},
+        {src: currentSong.albumPic, sizes: '128x128', type: 'image/png'},
+        {src: currentSong.albumPic, sizes: '192x192', type: 'image/png'},
+        {src: currentSong.albumPic, sizes: '256x256', type: 'image/png'},
+        {src: currentSong.albumPic, sizes: '384x384', type: 'image/png'},
+        {src: currentSong.albumPic, sizes: '512x512', type: 'image/png'},
       ]
     })
 
@@ -146,6 +146,14 @@ const handleMediaSession = (currentSong) => {
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       handleNextClick()
     })
+
+    navigator.mediaSession.setActionHandler('seekbackward', () => {
+      audioEl.value.currentTime -= 10
+    })
+
+    navigator.mediaSession.setActionHandler('seekforward', () => {
+      audioEl.value.currentTime += 10
+    })
   }
 }
 
@@ -155,8 +163,10 @@ const audioPlay = () => {
   if (songReady.value) {
     audioEl.value.play()
   }
+
 }
 const audioPause = () => {
+  musicStore.setIsPlaying(false)
   audioEl.value.pause()
 }
 

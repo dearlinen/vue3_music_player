@@ -1,6 +1,7 @@
 <script setup>
-import LayoutHeader from "@/views/layout/LayoutHeader.vue";
+import LayoutHeader from "@/components/header/LayoutHeader.vue";
 import AudioPlayer from "@/components/player/AudioPlayer.vue";
+import LayoutMenu from "@/components/header/LayoutMenu.vue";
 
 
 </script>
@@ -10,8 +11,8 @@ import AudioPlayer from "@/components/player/AudioPlayer.vue";
   <div class="layout">
     <LayoutHeader/>
     <div class="layout-body">
-      <div class="layout-menu" v-show="false">
-
+      <div class="layout-menu">
+        <LayoutMenu/>
       </div>
       <div class="content">
         <router-view/>
@@ -24,15 +25,15 @@ import AudioPlayer from "@/components/player/AudioPlayer.vue";
 
 <style lang="scss" scoped>
 .layout {
-  height: 100%;
+  height: calc(100vh - #{$header-height});
 
   .layout-body {
     display: flex;
-    height: calc(100% - #{$header-height});
+    height: calc(100vh - #{$header-height});
 
     .layout-menu {
       // 这个100%已经减去了头部height
-      height: calc(100% - #{$mini-player-height});
+      height: calc(100vh - #{$mini-player-height});
     }
 
     .content {

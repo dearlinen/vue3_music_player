@@ -18,3 +18,7 @@ export const getCookie = key => {
 export const getToken = ()=>{
     return Cookies.get('MUSIC_U')??getStorage('__MUSIC_U__')
 }
+
+export const getUID = ()=>{
+    return getStorage('__UID__')
+}

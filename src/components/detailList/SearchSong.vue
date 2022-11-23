@@ -8,7 +8,7 @@ import SearchTitle from "@/base/SearchTitle.vue";
 
 import {useRouter} from "vue-router";
 import {useMusicStore} from "@/store/music/music.js";
-import {formatDuration, formatIndex, formatSongData} from "utils/publicTools.js";
+import {formatDuration, formatIndex, formatSongData} from "utils/../../utils/publicTools";
 
 const router = useRouter()
 const musicStore = useMusicStore()

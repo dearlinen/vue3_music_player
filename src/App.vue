@@ -1,6 +1,6 @@
 <script setup>
 
-import Layout from "@/views/layout/Layout.vue";
+import Layout from "@/views/Layout.vue";
 import {anonymousReg} from "@/api/user/login.js";
 import {extractResponse} from "utils/requestTools.js";
 import {getCookie, setCookies} from "utils/cookieController.js";

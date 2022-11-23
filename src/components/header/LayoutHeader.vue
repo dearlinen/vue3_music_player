@@ -6,7 +6,7 @@ import {useRouter} from "vue-router";
 import BaseIcon from "@/base/BaseIcon.vue";
 
 import {ref} from 'vue'
-import {exitFullscreen, isFullscreen, setWindowFullScreen} from "utils/styleTools.js";
+import {exitFullscreen, isFullscreen, setWindowFullScreen} from "utils/styleTools";
 
 const router = useRouter()
 const isPlayerShow = ref(false)
