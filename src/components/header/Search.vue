@@ -41,7 +41,7 @@ const search = (keyword) => {
         searchHistory.value = [...new Set(searchHistory.value)];
         setSearchHistory(searchHistory.value)
         searchKeyword.value = '';
-        router.push({name: 'searchSong', params: {keyword}})
+        router.push({name: 'song', params: {keyword}})
       } else {
         message.error('请输入搜索关键字')
       }

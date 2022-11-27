@@ -3,6 +3,7 @@
 
 import {useUserStore} from "@/store/user/userStore.js";
 import {storeToRefs} from "pinia";
+import BaseIcon from "@/base/BaseIcon.vue";
 
 const userStore = useUserStore()
 
@@ -52,7 +53,6 @@ const defaultMenu = {
     <!--    <user />-->
     <div class="menu-wrap">
       <div
-          :key="index"
           class="menu-block"
 
       >
@@ -64,7 +64,7 @@ const defaultMenu = {
               v-for="(item, index) in defaultMenu.children"
           >
             <li class="menu-item">
-              <Icon :size="16" :type="item.icon" class="iconfont" />
+<!--              <BaseIcon :size="16" :type="item.icon" class="iconfont" />-->
               <span class="menu-title">{{ item.name }}</span>
             </li>
           </router-link>
@@ -80,8 +80,8 @@ const defaultMenu = {
   height: 100%;
   display: flex;
   flex-direction: column;
-  //background-color: var(--menu-bgcolor);
-  border-right: 3px var(--menu-bgcolor) solid;
+  background-color: var(--menu-bgcolor);
+  //border-right: 3px var(--menu-bgcolor) solid;
 
   .menu-wrap {
     flex: 1;
