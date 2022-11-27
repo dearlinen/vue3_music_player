@@ -1,13 +1,14 @@
 <script setup>
-import {ref, watch} from "vue";
+import {computed, nextTick, ref, watch} from "vue";
 import {getVolume} from "utils/stroageController.js";
 
 import {useMusicStore} from '@/store/music/music.js'
 import BaseIcon from '@/base/BaseIcon.vue'
 import VolumeSlider from "@/components/player/audioControll/VolumeSlider.vue";
 import TimeSlider from "@/components/player/audioControll/TimeSlider.vue";
+import {formatPlayedTime} from '@/utils/publicTools.js';
+
 import {storeToRefs} from "pinia";
-import {usePlayMode} from "@/components/player/usePlayMode.js";
 
 const musicStore = useMusicStore()
 
@@ -17,11 +18,10 @@ const songReady = ref(false)
 
 const playerSHow = ref(false)
 const playedTime = ref(0)
+const isAlbumShow = ref(false)
 
 
 const {currentSong, playlist, currentTime, playMode, isPlaying} = storeToRefs(musicStore)
-
-const {modIcon, mode} = usePlayMode(playMode.value)
 
 
 // audio元素事件
@@ -84,7 +84,6 @@ const handleVolumeChange = (newVolume) => {
 
 //侦听
 watch(currentSong, async (newSong) => {
-  console.log(newSong)
   if (newSong) {
     handleMediaSession(newSong)
     songReady.value = false
@@ -101,10 +100,14 @@ watch(currentSong, async (newSong) => {
   }
 })
 
+const playedText = computed(() => {
+  return formatPlayedTime(currentTime.value)
+})
 
-watch(isPlaying, (newVal) => {
-  console.log('watch play')
-  if (newVal) {
+
+watch(isPlaying, async (newPlaying) => {
+  await nextTick()
+  if (newPlaying) {
     audioEl.value.src = currentSong.value.url
     audioPlay()
   } else {
@@ -172,7 +175,7 @@ const audioPause = () => {
 
 
 const toggleAlbumShow = () => {
-  musicStore.setAlbumShow(true)
+  isAlbumShow.value = !isAlbumShow.value
 }
 </script>
 
@@ -182,33 +185,31 @@ const toggleAlbumShow = () => {
   <div class="audio-player">
 
     <div class="song">
-      <!--   专辑图片-->
-      <!--          <template>-->
-      <!--            <div @click="togglePlayerShow" class="img-wrap">-->
-      <!--              <div class="mask"></div>-->
-      <!--              <el-image lazy :src="musicStore.currentSong.picUrl"/>-->
-      <!--              <div class="player-control">-->
-      <!--                &lt;!&ndash;          <Icon :size="24" :type="playControlIcon" color="white"/>&ndash;&gt;-->
-      <!--              </div>-->
-      <!--            </div>-->
-      <!--            <div class="content">-->
-      <!--              <div class="top">-->
-      <!--                <p class="name">{{ currentSong.name }}</p>-->
-      <!--                <p class="split">-</p>-->
-      <!--                <p class="artists">{{ currentSong.artistsText }}</p>-->
-      <!--              </div>-->
-      <!--              <div class="time">-->
-      <!--                <span class="played-time">{{-->
-      <!--                    $utils.formatTime(currentTime)-->
-      <!--                  }}</span>-->
-      <!--                <span class="split">/</span>-->
-      <!--                <span class="total-time">{{-->
-      <!--                    $utils.formatTime(currentSong.duration / 1000)-->
-      <!--                  }}</span>-->
-      <!--              </div>-->
-      <!--            </div>-->
-      <!--          </template>-->
-      <!--     专辑图片结束-->
+
+      <div @click="toggleAlbumShow" class="img-wrap">
+        <div class="mask"></div>
+        <el-image lazy :src="currentSong.albumPic"/>
+        <div class="player-control">
+          <!--          <Icon :size="24" :type="playControlIcon" color="white"/>-->
+          <BaseIcon type="arrow-down" :size="24" color="white"/>
+        </div>
+      </div>
+      <div class="content">
+        <div class="top">
+          <p class="name">{{ currentSong.name }}</p>
+          <p class="split">-</p>
+          <p class="artists">{{ currentSong.artist }}</p>
+        </div>
+        <div class="time">
+                      <span class="played-time">{{
+                          playedText
+                        }}</span>
+          <span class="split">/</span>
+          <span class="total-time">{{
+              currentSong.duration
+            }}</span>
+        </div>
+      </div>
 
     </div>
     <!--     控制台-->
@@ -226,7 +227,7 @@ const toggleAlbumShow = () => {
     <div class="mode">
       <!-- 模式 -->
       <el-popover placement="top" trigger="click" width="160">
-        <p>{{ mode }}</p>
+        <p>模式</p>
 
         <template #reference>
           <BaseIcon :size="20" @btnClick="handlePlaylistClick" type="shuffle" class="mode-item"/>

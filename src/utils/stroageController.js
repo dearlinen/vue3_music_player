@@ -5,6 +5,7 @@ const storageKey = {
     searchHistory: '__search_history__',
     theme: '__theme__',
     playMode: '__play_mode__',
+    userInfo:'__user_info__'
 }
 
 
@@ -68,4 +69,12 @@ export const setCookie = cookieStr => {
 
 export const getCookie = key => {
     return getStorage(`__cookie-${key}__`)
+}
+
+export  const setUserInfo = data=>{
+    setStorage(storageKey.userInfo,data)
+}
+
+export const getUserInfo = ()=>{
+    return getStorage(storageKey.userInfo)
 }

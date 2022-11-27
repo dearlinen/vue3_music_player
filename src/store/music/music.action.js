@@ -6,29 +6,38 @@ import {getPlayHistory, setPlayHistory} from "utils/stroageController.js";
 export const musicAction = {
 
     async startPlay(rawData) {
+        this.isPlaying = false
         const {id} = rawData
         const [err, res] = await getSongUrl(id);
-        if (err) message.error('获取歌曲链接失败', err);
+        const hasCurrentIndex = comparePlaylist(this.playlist, rawData);
+        const songData = {...rawData, url: res.data[0].url}
+        if (err) {
+            message.error('获取歌曲链接失败', err);
+        }
         else {
-            const hasCurrentIndex = comparePlaylist(this.playlist, rawData);
-            const songData = {...rawData, url: res.data[0].url}
-            if (this.playlist.length!==0 && hasCurrentIndex >= 0) {
-                this.currentPlayIndex = this.playlist.length - 1;
-                this.playlist.push(songData);
-                this.currentSong = songData;
+            if (this.playlist.length === 0) {
+                this.playlist = [songData]
+                this.currentSong = songData
             } else {
-                this.currentPlayIndex = hasCurrentIndex;
-                this.currentSong = songData;
+                if (hasCurrentIndex >= 0) {
+                    this.currentPlayIndex = hasCurrentIndex;
+                    this.currentSong = songData;
+                } else {
+                    this.$patch((state) => {
+                        state.currentPlayIndex = hasCurrentIndex
+                        state.currentSong = songData
+                        state.playlist.push(songData)
+                    })
+                }
             }
-            this.isPlaying = true;
 
+            this.isPlaying = true;
             setPlayHistory(this.playlist);
         }
     },
     playNext() {
 
         const loop = () => {
-            console.log('loop')
             if (this.currentPlayIndex === this.playlist.length - 1) {
                 this.currentPlayIndex = 0;
                 this.currentSong = {...this.playlist[this.currentPlayIndex]};
@@ -58,14 +67,15 @@ export const musicAction = {
 
     },
     playPrev() {
-
+        this.isPlaying=false
         if (this.currentPlayIndex === 0) {
-            this.currentPlayIndex = this.playlist.length - 1;
+            this.currentPlayIndex = 0
             this.currentSong = this.playlist[this.currentPlayIndex];
         } else {
             this.currentPlayIndex--;
             this.currentSong = this.playlist[this.currentPlayIndex];
         }
+        this.isPlaying=true
     },
     setCurrentTime(time) {
         this.currentTime = time;

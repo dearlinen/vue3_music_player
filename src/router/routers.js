@@ -42,13 +42,8 @@ const searchRouter = [
         component: () => import('@/views/SearchPage.vue'),
         children: [
             {
-                path: '',
-                redirect: 'song',
-                // props: true
-            },
-            {
                 path: 'song',
-                name: 'searchSong',
+                name: 'song',
                 component: () => import('@/components/detailList/SearchSong.vue'),
             },
             {

@@ -1,13 +1,18 @@
 <script setup>
 
 import {useRouter} from "vue-router";
+import {ref} from "vue";
 
 const router = useRouter()
 
 const {params} = router.currentRoute.value
 
-const {keyword} = params
+const activeTab = ref('song')
 
+const handleClick = e=>{
+  console.log(e.props.name)
+  router.push({name:e.props.name,params})
+}
 
 const tbs = [
   {
@@ -33,12 +38,15 @@ const tbs = [
 <template>
   <div class="search-detail">
     <div class="tabs-wrap">
-      <router-link
-          v-for="tb in tbs"
-          :key="tb.key"
-          :to="tb.to">
-        {{ tb.title }}
-      </router-link>
+        <el-tabs v-model="activeTab" class="demo-tabs" @tab-click="handleClick">
+          <el-tab-pane
+              v-for="tb in tbs"
+              :key="tb.key"
+              :label="tb.title"
+              :name="tb.key"
+              name="first"></el-tab-pane>
+        </el-tabs>
+
       <div class="search-body">
         <router-view />
       </div>

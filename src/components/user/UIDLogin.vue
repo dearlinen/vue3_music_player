@@ -15,7 +15,6 @@ const nickname = ref('')
 const searchList = ref([])
 
 const handleSearch = async () => {
-  // const [err, res] = await getUserDetail(nickname.value)
   const [err, res] = await getSearch(nickname.value, 30, 1, 1002)
   if (err) {
     message.error('获取用户名列表失败')
