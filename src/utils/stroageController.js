@@ -5,7 +5,10 @@ const storageKey = {
     searchHistory: '__search_history__',
     theme: '__theme__',
     playMode: '__play_mode__',
-    userInfo:'__user_info__'
+    userProfile: '__user_profile__',
+    userPlaylist: '__user_playlist__',
+    loginType: '__login_type__',
+    captcha:'__captcha__'
 }
 
 
@@ -71,10 +74,41 @@ export const getCookie = key => {
     return getStorage(`__cookie-${key}__`)
 }
 
-export  const setUserInfo = data=>{
-    setStorage(storageKey.userInfo,data)
+export const setPlaylistCache = (playlist) => {
+    return setStorage(storageKey.userPlaylist, playlist)
 }
 
-export const getUserInfo = ()=>{
-    return getStorage(storageKey.userInfo)
+export const getPlaylistCache = () => {
+    return getStorage(storageKey.userPlaylist)
+}
+
+export const setLoginType = (type) => {
+    return setStorage(storageKey.loginType, type)
+}
+
+export const getLoginType = () => {
+    return getStorage(storageKey.loginType)
+}
+
+export const setProfileCache = (profile) => {
+    return setStorage(storageKey.userProfile, profile)
+}
+
+export const getProfileCache = () => {
+    return getStorage(storageKey.userProfile)
+}
+
+export const clearUserCache = () => {
+    setLoginType('anonymous')
+    setPlayHistory(null)
+    setProfileCache(null)
+    setPlaylistCache(null)
+}
+
+export const setCaptchaCache = date=>{
+    setStorage(storageKey.captcha,date)
+}
+
+export const getCaptchaCache = ()=>{
+    return getStorage(storageKey.captcha)
 }

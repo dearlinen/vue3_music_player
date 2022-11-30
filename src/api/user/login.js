@@ -14,3 +14,12 @@ export const captchaLogin = async (phone, captcha) => await Get("/login/cellphon
 
 //游客登陆，防止400错误
 export const anonymousReg = async () => await Get('/register/anonimous')
+
+//获取二维码key
+export  const getQUID = async (timestamp) => await Get('/login/qr/key',params={timestamp})
+
+//获取二维码数据
+export  const getQRCode = async (key,timestamp) => await Get('/login/qr/create',params={key,timestamp,qrimg:true})
+
+//检查二维码状态
+export  const checkQRCode = async (key,timestamp) => await Get('/login/qr/check',params={key,timestamp})

@@ -12,7 +12,7 @@ const pageRouter = [
         component: () => import('@/views/Discovery.vue'),
     },
     {
-        path: '/user/:username',
+        path: '/user/:uid',
         name:'user',
         component:()=>import('@/components/user/User.vue')
     }
@@ -26,12 +26,26 @@ const loginRouter = [
     {
         path: '/uid',
         name: 'uid',
-        component: () => import('@/components/user/UIDLogin.vue')
+        component: () => import('@/components/user/UIDLogin.vue'),
+        beforeEnter: (to, from, next) => {
+            if (from.path === '/login') {
+                next()
+            } else {
+                next('/login')
+            }
+        }
     },
     {
         path: '/account',
         name: 'account',
-        component: () => import('@/components/user/AccountLogin.vue')
+        component: () => import('@/components/user/AccountLogin.vue'),
+        beforeEnter: (to, from, next) => {
+            if (from.path === '/login') {
+                next()
+            } else {
+                next('/login')
+            }
+        }
     },
 ]
 

@@ -1,16 +1,18 @@
 import {defineStore} from "pinia";
 import {userActions} from "@/store/user/user.action.js";
+import {getCaptchaCache} from "utils/stroageController.js";
 
 
 export const useUserStore = defineStore('user', {
     state: () => ({
-        isLogin: false,
-        loginType:'anonymous',
-        userInfo: {},
-        userPlaylist:[],
+        loginType: 'anonymous',
+        uid: '',
+        captchaTime: getCaptchaCache() || +(new Date()),
+        userProfile: {},
+        playlist: [],
         token: '',
     }),
-    actions:{
+    actions: {
         ...userActions
     }
 })

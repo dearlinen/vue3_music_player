@@ -29,8 +29,7 @@ const handleSearch = async () => {
 }
 
 const handleUserClick = user => {
-  userStore.setUIDLogin(user.userId)
-  router.push({name:'user',params:{username:user.nickname}})
+  router.push({name:'user',params:{uid:user.userId}})
 }
 
 const isListShow = computed(
