@@ -86,7 +86,7 @@ export const setLoginType = (type) => {
     return setStorage(storageKey.loginType, type)
 }
 
-export const getLoginType = () => {
+export const getLoginCache = () => {
     return getStorage(storageKey.loginType)
 }
 

@@ -1,28 +1,101 @@
 <script setup>
-import {ref, watch} from 'vue'
-import {captchaLogin, getQRCode, getQUID, pwdLogin, verify} from "@/api/user/login.js";
+import {nextTick, ref, watch} from 'vue'
+import {captchaLogin, checkQRCode, emailLogin, getQRCode, getQUID, pwdLogin, verify} from "@/api/user/login.js";
 import {useUserStore} from "@/store/user/userStore.js";
-import {musicAction} from "@/store/music/music.action.js";
 import {storeToRefs} from "pinia";
+import {message} from "@/base/message.js";
+import {getCaptchaCache, getProfileCache} from "utils/stroageController.js";
+import {router} from "@/router/routers.js";
+import BaseIcon from '@/base/BaseIcon.vue'
 
 const userStore = useUserStore()
-const {captchaTime} = storeToRefs(userStore)
+// const {captchaTime} = storeToRefs(userStore)
 
 const mode = ref('qrcode')
 const email = ref('')
 const phone = ref('')
 const password = ref('')
-const code = ref('')
+
+const formData = ref(
+    {
+      email: '',
+      phone: '',
+      password: '',
+      captcha: ''
+    }
+)
+
+const isValidated = ref(false)
 
 
 const qrCode = ref('')
 const qrInfo = ref('请打开网易云APP扫码登陆')
 
-const wasCaptchaSend = ref(false)
-const captchaLeft = ref(0)
+const captcha = ref({
+  wasSend: false,
+  timeLeft: 0
+})
+
+const regexValidator = (value, cb, filed, regex) => {
+  if (value === '') {
+    cb('请输入' + filed)
+    isValidated.value = false
+  } else {
+    const res = regex.test(value)
+    if (!res) {
+      cb('请输入正确格式的' + filed)
+      isValidated.value = false
+    } else {
+      isValidated.value = true
+    }
+  }
+}
+
+const validator = {
+  email: [
+    {
+      validator: (rule, value, cb) => {
+        regexValidator(value, cb, '邮箱', /^1[3456789]\d{9}$/)
+      },
+      trigger: 'blur'
+    }
+  ],
+  phone: [
+    {
+      validator: (rule, value, cb) => {
+        regexValidator(value, cb, '手机号', /^1[3456789]\d{9}$/)
+      },
+      trigger: 'blur'
+    }
+  ],
+  captcha: [
+    {
+      validator: (rule, value, cb) => {
+        regexValidator(value, cb, '验证码', /\d{4}/)
+      },
+      trigger: 'blur'
+    }
+  ],
+  password: [
+    {
+      validator: (rule, value, cb) => {
+        regexValidator(value, cb, '密码', /\S{6,18}/)
+      },
+      trigger: 'blur'
+    }
+  ]
+}
 
 let qrCodeTimer = null
 let captchaTimer = null
+
+function checkLocalCache() {
+  const profile = getProfileCache()
+  if (profile) {
+    message.warning('当前已经登录，将跳转到用户页面，如需重新登陆，请先退出')
+    router.push({name: 'user', params: {uid: profile.account.id}})
+  }
+}
 
 async function getQR() {
   // 获取二维码
@@ -31,20 +104,22 @@ async function getQR() {
   // 3. 如果二维码状态为已扫描，清除定时器，跳转到登录成功页面
   // 4. 如果二维码状态为已失效，清除定时器，跳转到登录失败页面
 
-  const [err, code] = await getQUID(+Date())
+  const [err, key] = await getQUID(+new Date())
   if (err) {
-    return
+    return false
   } else {
-    const [err, code] = await getQRCode(code, +Date())
+    const [err, code] = await getQRCode(key.data.unikey, +new Date())
     if (err) {
-      return
+      return false
     } else {
       qrCode.value = code
       qrCodeTimer = setInterval(async () => {
-        const [err, code] = await getQRCode(code, +Date())
+        const [err, QRState] = await checkQRCode(key.data.unikey, +new Date())
         if (err) {
-          return
+          return false
         } else {
+          const {code, cookie} = QRState
+
           if (code === 800) {
             clearInterval(qrCodeTimer)
             qrInfo.value = '二维码已失效，请重新扫码'
@@ -54,6 +129,7 @@ async function getQR() {
             qrInfo.value = '扫码成功，请在手机上确定登录'
           } else if (code === 803) {
             clearInterval(qrCodeTimer)
+            await userStore.setAccountLogin(cookie)
             qrInfo.value = '登录成功'
           }
         }
@@ -63,29 +139,41 @@ async function getQR() {
 }
 
 
-getQR()
-
-const handleSubmit =async () => {
-  if (mode.value === 'email') {
-
+const handleSubmit = async () => {
+  const handleLoginError = () => {
+    message.error('登录失败，请检查账号或密码')
   }
 
-  if (mode.value === 'phone') {
-  const [err,res]=await pwdLogin(phone.value,password.value)
-    if (err){
+  const handleFiledError = () => {
+    message.error('请输入账号或密码')
+  }
 
-    }else {
-      await userStore.setAccountLogin(res)
+  const {email, password, captcha, phone} = formData.value
+  if (mode.value === 'email') {
+    const [err, res] = await emailLogin(email, password)
+    if (err || res.code !== 200) {
+      handleLoginError()
+    } else {
+      await userStore.setAccountLogin(res.cookie)
     }
   }
 
-  if (mode.value === 'code') {
-    if (code.value&&phone.value){
-      const [err,res] = await verify(phone.value,code.value)
-      if (err){
+  if (mode.value === 'phone') {
+    const [err, res] = await pwdLogin(phone, password)
+    if (err || res.code !== 200) {
+      handleLoginError()
+    } else {
+      await userStore.setAccountLogin(res.cookie)
+    }
+  }
 
-      }else {
-        const [err,res]=await captchaLogin(phone.value,code.value)
+  if (mode.value === 'captcha') {
+    if (captcha && phone) {
+      const [err, res] = await verify(phone, captcha)
+      if (err || res.code !== 200) {
+        message.error('验证码错误')
+      } else {
+        const [err, res] = await captchaLogin(phone, captcha)
         await userStore.setAccountLogin(res)
       }
     }
@@ -99,91 +187,162 @@ async function getCaptcha(phone) {
   const sent = await userStore.sendCaptcha(phone)
 
   if (sent) {
-    const sentTIme = captchaTime.value
+    const end = (+new Date()) + 60000
     captchaTimer = setInterval(
         () => {
-          const timeLeft = Math.floor(sentTIme - (+(new Date())))
-          if (timeLeft){
-            wasCaptchaSend.value = true
-            captchaLeft.value = timeLeft
-          }else {
-            wasCaptchaSend.value = false
-            captchaLeft.value = 0
+          const now = +(new Date())
+          const timeLeft = Math.floor((end - now) / 1000)
+          if (timeLeft > 0) {
+            captcha.value.wasSend = true
+            captcha.value.timeLeft = timeLeft
+          } else {
+            captcha.value.wasSend = false
+            captcha.value.timeLeft = 0
+            clearInterval(captchaTimer)
           }
-        }
+        }, 1000
     )
   }
 
 }
 
-watch(() => mode.value, (newVal, oldValue) => {
-
+//watch login mode change
+watch(mode, (newVal, oldValue) => {
   if (oldValue === 'qrcode') {
     clearInterval('qrCodeTimer')
   }
 
-  if (oldValue === 'code') {
+  if (oldValue === 'captcha') {
 
   }
 
 })
 
 
+//init
+checkLocalCache()
+getQR()
+
 </script>
 
 <template>
 
   <div class="login">
-    <div class="login-container">
-      <div class="title">
-        <p>登录网易云账号</p>
+    <el-form
+        :rules="validator"
+        :model="formData"
+        label-width="70px"
+        label-position="left"
+        require-asterisk-position="left"
+    >
+      <div class="login-container">
+        <div class="title">
+          <p>登录网易云账号</p>
+        </div>
+
+        <div v-show="mode==='qrcode'">
+          <div v-if="qrCode" class="img">
+            <el-image :src="qrCode.data.qrimg"/>
+          </div>
+          <div v-else class="img img-fail">
+            <BaseIcon type="play" :size="48"/>
+            <p>二维码加载失败，请点击重试</p>
+          </div>
+        </div>
+
+
+        <div class="account input-box">
+          <el-form-item
+              v-show="mode==='email'"
+              prop="email"
+              label="邮箱"
+          >
+            <div class="inputs">
+              <el-input
+                  size="large"
+                  v-model="formData.email"
+                  placeholder="邮箱"
+                  class="inputs"
+              />
+            </div>
+
+          </el-form-item>
+
+          <el-form-item
+              v-show="mode==='phone'||mode==='captcha'"
+              prop="phone"
+              label="手机号"
+          >
+            <div class="inputs">
+              <el-input
+                  size="large"
+                  placeholder="手机号"
+                  v-model="formData.phone"
+              />
+            </div>
+          </el-form-item>
+        </div>
+
+
+        <div class="pwd input-box">
+          <el-form-item
+              v-show="mode==='email'||mode==='phone'"
+              label="密码"
+              prop="password"
+          >
+            <div class="inputs">
+              <el-input
+                  size="large"
+                  v-model="formData.password"
+                  placeholder="密码"
+                  type="password"
+                  show-password
+
+              />
+            </div>
+          </el-form-item>
+
+          <el-form-item
+              v-show="mode==='captcha'"
+              label="验证码"
+              prop="captcha"
+          >
+            <div class="inputs">
+              <el-input
+                  size="large"
+                  v-model="formData.captcha"
+                  placeholder="验证码"
+              >
+
+                <template #append>
+                  <BaseIcon
+                      v-if="!captcha.wasSend"
+                      @click="getCaptcha"
+                      type="play"
+                      :size="24"/>
+                  <el-button disabled v-else>
+                    {{ captcha.timeLeft }}秒后可再次发送
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
+          </el-form-item>
+        </div>
+
+
+        <div class="confirm">
+          <el-button :disabled="!isValidated">登录</el-button>
+        </div>
+
+        <div class="switch">
+          <el-button v-show="mode!=='qrcode'" text @click="mode='qrcode'">二维码登录</el-button>
+          <el-button v-show="mode!=='email'" text @click="mode='email'">邮箱登录</el-button>
+          <el-button v-show="mode!=='captcha'" text @click="mode='captcha'">验证码登录</el-button>
+          <el-button v-show="mode!=='phone'" text @click="mode='phone'">密码登录</el-button>
+
+        </div>
       </div>
-
-      <div class="section-1" v-show="mode==='qrcode'">
-        <p>二维码</p>
-        <el-image src="/"/>
-      </div>
-
-
-      <div class="section-2" v-show="mode==='email'">
-        <el-input
-            placeholder="邮箱"
-        />
-        <el-input
-            placeholder="密码"
-        />
-      </div>
-
-      <div class="section" v-show="mode==='code'">
-        <el-input
-            placeholder="手机号"
-        />
-        <el-input
-            placeholder="验证码"
-        />
-      </div>
-
-      <div class="section" v-show="mode==='phone'">
-        <el-input
-            placeholder="手机号"
-        />
-        <el-input
-            placeholder="密码"
-        />
-      </div>
-
-      <div class="confirm">
-        <el-button>登录</el-button>
-      </div>
-
-      <div class="switch">
-        <el-button v-show="mode!=='qrcode'" type="text" @click="mode='qrcode'">二维码登录</el-button>
-        <el-button v-show="mode!=='email'" type="text" @click="mode='email'">邮箱登录</el-button>
-        <el-button v-show="mode!=='code'" type="text" @click="mode='code'">验证码登录</el-button>
-        <el-button v-show="mode!=='phone'" type="text" @click="mode='phone'">密码登录</el-button>
-
-      </div>
-    </div>
+    </el-form>
   </div>
 
 </template>
@@ -212,23 +371,22 @@ watch(() => mode.value, (newVal, oldValue) => {
   color: var(--color-text);
 }
 
-.section-1 {
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
 
-  img {
-    height: 64px;
-    margin: 20px;
-    user-select: none;
-  }
-}
-
-.section-2 {
+.img {
   display: flex;
-  align-items: center;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  margin: 20px;
+  user-select: none;
 }
+
+.img-fail {
+  padding: 6px;
+  background: rgba(65, 67, 80, 0.1);
+}
+
 
 .input-box {
   display: flex;
@@ -236,28 +394,9 @@ watch(() => mode.value, (newVal, oldValue) => {
   margin-bottom: 16px;
   color: var(--color-text);
 
-  .container {
-    display: flex;
-    align-items: center;
-    height: 46px;
-    background: var(--color-secondary-bg);
-    border-radius: 8px;
-    width: 300px;
-  }
-
-  .svg-icon {
-    height: 18px;
-    width: 18px;
-    color: #aaaaaa;
-    margin: {
-      left: 12px;
-      right: 6px;
-    }
-  }
 
   .inputs {
-    display: flex;
-    width: 85%;
+    width: 300px;
   }
 
   input {
@@ -268,19 +407,6 @@ watch(() => mode.value, (newVal, oldValue) => {
     font-weight: 600;
     margin-top: -1px;
     color: var(--color-text);
-  }
-
-  input::placeholder {
-    color: var(--color-text);
-    opacity: 0.38;
-  }
-
-  input#countryCode {
-    flex: 3;
-  }
-
-  input#phoneNumber {
-    flex: 12;
   }
 
   .active {
@@ -299,28 +425,20 @@ watch(() => mode.value, (newVal, oldValue) => {
   justify-content: center;
   font-size: 20px;
   font-weight: 600;
-  background-color: var(--color-primary-bg);
-  color: var(--color-primary);
+  background-color: var(--body-bgcolor);
+  color: var(--font-color);
   border-radius: 8px;
   margin-top: 24px;
   transition: 0.2s;
   padding: 8px;
-  width: 100%;
   width: 300px;
+  height: 48px;
 
-  &:hover {
-    transform: scale(1.06);
-  }
-
-  &:active {
-    transform: scale(0.94);
-  }
 }
 
-.other-login {
+.switch {
   margin-top: 24px;
   font-size: 13px;
-  color: var(--color-text);
   opacity: 0.68;
 
   a {
@@ -328,64 +446,4 @@ watch(() => mode.value, (newVal, oldValue) => {
   }
 }
 
-.notice {
-  width: 300px;
-  border-top: 1px solid rgba(128, 128, 128);
-  margin-top: 48px;
-  padding-top: 12px;
-  font-size: 12px;
-  color: var(--color-text);
-  opacity: 0.48;
-}
-
-@keyframes loading {
-  0% {
-    opacity: 0.2;
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.2;
-  }
-}
-
-button.loading {
-  height: 44px;
-  cursor: unset;
-
-  &:hover {
-    transform: none;
-  }
-}
-
-.loading span {
-  width: 6px;
-  height: 6px;
-  background-color: var(--color-primary);
-  border-radius: 50%;
-  margin: 0 2px;
-  animation: loading 1.4s infinite both;
-}
-
-.loading span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.loading span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-.qr-code-container {
-  background-color: var(--color-primary-bg);
-  padding: 24px 24px 21px 24px;
-  border-radius: 1.25rem;
-  margin-bottom: 12px;
-}
-
-.qr-code-info {
-  color: var(--color-text);
-  text-align: center;
-  margin-bottom: 28px;
-}
 </style>

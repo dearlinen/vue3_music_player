@@ -1,7 +1,7 @@
-import {getUserDetail} from "@/api/user/info.js";
+import {getUserAccount, getUserDetail} from "@/api/user/info.js";
 import {message} from "@/base/message.js";
 import {getPlaylists} from "@/api/public/playlist.js";
-import {clearUserCache, setProfileCache, setPlaylistCache, setLoginType} from "utils/stroageController.js";
+import {clearUserCache, setProfileCache, setPlaylistCache, setLoginType, setCookie} from "utils/stroageController.js";
 import {sendCaptchaCode} from "@/api/user/login.js";
 
 export const userActions = {
@@ -26,13 +26,25 @@ export const userActions = {
         setLoginType('UID')
     },
     async setUserProfile(uid) {
-        const [err, user] = await getUserDetail(uid)
-        if (err) {
-            message.error('获取用户详情失败')
-        } else {
-            this.userProfile = user
-            setProfileCache(user)
-        }
+       if (this.loginType==='uid'){
+           const [err, profile] = await getUserDetail(uid)
+           if (err) {
+               message.error('获取用户详情失败')
+           } else {
+               this.uid=uid
+               this.userProfile = profile
+               setProfileCache(profile)
+           }
+       }else if (this.loginType==='account'){
+           const [err,profile] = await getUserAccount()
+           if (err){
+               return
+           }else {
+               this.uid = profile.account.id
+               this.userProfile = profile
+               setProfileCache(profile)
+           }
+       }
     },
     async setPlaylist(uid) {
         const [err, playlists] = await getPlaylists(uid)
@@ -51,6 +63,10 @@ export const userActions = {
         clearUserCache()
     },
     async setAccountLogin(cookie) {
-
+        this.loginType='account'
+        setLoginType('account')
+        setCookie(cookie)
+        await this.setUserProfile()
+        await this.setPlaylist(this.uid)
     }
 }
