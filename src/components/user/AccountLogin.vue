@@ -9,13 +9,8 @@ import {router} from "@/router/routers.js";
 import BaseIcon from '@/base/BaseIcon.vue'
 
 const userStore = useUserStore()
-// const {captchaTime} = storeToRefs(userStore)
 
 const mode = ref('qrcode')
-const email = ref('')
-const phone = ref('')
-const password = ref('')
-
 const formData = ref(
     {
       email: '',
@@ -24,12 +19,12 @@ const formData = ref(
       captcha: ''
     }
 )
-
 const isValidated = ref(false)
-
 
 const qrCode = ref('')
 const qrInfo = ref('请打开网易云APP扫码登陆')
+const isQRFFail = ref(false)
+const isQRContinue = ref(false)
 
 const captcha = ref({
   wasSend: false,
@@ -103,7 +98,7 @@ async function getQR() {
   // 2. 设置定时器，每隔一段时间，获取一次二维码状态
   // 3. 如果二维码状态为已扫描，清除定时器，跳转到登录成功页面
   // 4. 如果二维码状态为已失效，清除定时器，跳转到登录失败页面
-
+  isQRFFail.value = false
   const [err, key] = await getQUID(+new Date())
   if (err) {
     return false
@@ -116,13 +111,15 @@ async function getQR() {
       qrCodeTimer = setInterval(async () => {
         const [err, QRState] = await checkQRCode(key.data.unikey, +new Date())
         if (err) {
+          isQRFFail.value = true
           return false
         } else {
           const {code, cookie} = QRState
 
           if (code === 800) {
             clearInterval(qrCodeTimer)
-            qrInfo.value = '二维码已失效，请重新扫码'
+            isQRFFail.value = true
+            qrInfo.value = '二维码已失效，请刷新重试'
           } else if (code === 801) {
             qrInfo.value = '请打开网易于音乐APP扫码登陆'
           } else if (code === 802) {
@@ -241,12 +238,27 @@ getQR()
         </div>
 
         <div v-show="mode==='qrcode'">
-          <div v-if="qrCode" class="img">
-            <el-image :src="qrCode.data.qrimg"/>
-          </div>
-          <div v-else class="img img-fail">
-            <BaseIcon type="play" :size="48"/>
-            <p>二维码加载失败，请点击重试</p>
+          <div class="img">
+            <el-image v-if="qrCode" :src="qrCode.data.qrimg"/>
+            <div v-else class="img img-fail">
+              <BaseIcon type="play" :size="48"/>
+              <p>加载失败，请尝试刷新</p>
+            </div>
+            <div>
+
+              <div v-if="qrCode.code==='800'" class="img img-fail">
+                <BaseIcon type="play" :size="48"/>
+                <p>二维码失效，请刷新</p>
+              </div>
+              <div v-else-if="qrCode.code==='802'" class="img img-fail">
+                <BaseIcon type="play" :size="48"/>
+                <p>扫码成功，请在手机确认登陆</p>
+              </div>
+              <div v-else-if="qrCode.code==='803'" class="img img-fail">
+                <BaseIcon type="play" :size="48"/>
+                <p>登录成功，正在跳转</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -383,6 +395,9 @@ getQR()
 }
 
 .img-fail {
+  position: relative;
+  top: 0;
+  left: 0;
   padding: 6px;
   background: rgba(65, 67, 80, 0.1);
 }

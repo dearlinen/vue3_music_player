@@ -5,6 +5,10 @@ import {getPlayHistory, setPlayHistory} from "utils/stroageController.js";
 
 export const musicAction = {
 
+    setLyric(lyric) {
+        this.lyric = lyric
+    },
+
     async startPlay(rawData) {
         this.isPlaying = false
         const {id} = rawData

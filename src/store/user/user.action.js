@@ -1,7 +1,14 @@
 import {getUserAccount, getUserDetail} from "@/api/user/info.js";
 import {message} from "@/base/message.js";
 import {getPlaylists} from "@/api/public/playlist.js";
-import {clearUserCache, setProfileCache, setPlaylistCache, setLoginType, setCookie} from "utils/stroageController.js";
+import {
+    clearUserCache,
+    setProfileCache,
+    setPlaylistCache,
+    setLoginType,
+    setCookie,
+    setUserCache
+} from "utils/stroageController.js";
 import {sendCaptchaCode} from "@/api/user/login.js";
 
 export const userActions = {
@@ -24,6 +31,7 @@ export const userActions = {
         this.uid = uid
         this.loginType = 'UID'
         setLoginType('UID')
+        await this.setUserProfile(uid)
     },
     async setUserProfile(uid) {
        if (this.loginType==='uid'){

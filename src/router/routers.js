@@ -15,6 +15,11 @@ const pageRouter = [
         path: '/user/:uid',
         name:'user',
         component:()=>import('@/components/user/User.vue')
+    },
+    {
+        path:'/lyric',
+        name:'lyric',
+        component:()=>import('@/components/player/Lyric.vue')
     }
 ]
 

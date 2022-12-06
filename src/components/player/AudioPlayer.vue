@@ -9,6 +9,7 @@ import TimeSlider from "@/components/player/audioControll/TimeSlider.vue";
 import {formatPlayedTime} from '@/utils/publicTools.js';
 
 import {storeToRefs} from "pinia";
+import {throttle} from "utils/debounce.js";
 
 const musicStore = useMusicStore()
 
@@ -34,8 +35,10 @@ const handleCanPlay = () => {
 }
 
 const handleTimeUpdate = (e) => {
-  musicStore.setCurrentTime(e.target.currentTime)
-  playedTime.value = e.target.currentTime
+  throttle(()=>{
+    musicStore.setCurrentTime(e.target.currentTime)
+    playedTime.value = e.target.currentTime
+  },1000)()
 }
 
 

@@ -8,7 +8,8 @@ const storageKey = {
     userProfile: '__user_profile__',
     userPlaylist: '__user_playlist__',
     loginType: '__login_type__',
-    captcha:'__captcha__'
+    captcha:'__captcha__',
+    flag:'__flag__',
 }
 
 
@@ -73,6 +74,15 @@ export const setCookie = cookieStr => {
 export const getCookie = key => {
     return getStorage(`__cookie-${key}__`)
 }
+export const hasCookieCache = () =>{
+    return getStorage(storageKey.loginType)
+}
+
+export const setUserCache = (loginMode, profile, playlist) => {
+    setStorage(storageKey.loginType, loginMode)
+    setStorage(storageKey.userProfile, profile)
+    setStorage(storageKey.userPlaylist, playlist)
+}
 
 export const setPlaylistCache = (playlist) => {
     return setStorage(storageKey.userPlaylist, playlist)
@@ -111,4 +121,13 @@ export const setCaptchaCache = date=>{
 
 export const getCaptchaCache = ()=>{
     return getStorage(storageKey.captcha)
+}
+
+
+export const setFlagCache = flag => {
+    setStorage(storageKey.flag, flag)
+}
+
+export const getFlagCache = () => {
+    return getStorage(storageKey.flag)
 }
