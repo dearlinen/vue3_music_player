@@ -42,6 +42,10 @@ const defaultMenu = {
       name: '新碟上架',
       path: '/discovery/album',
       icon: 'album'
+    },
+    {
+      name: '歌词',
+      path: '/lyric',
     }
   ]
 }
@@ -64,7 +68,7 @@ const defaultMenu = {
               v-for="(item, index) in defaultMenu.children"
           >
             <li class="menu-item">
-<!--              <BaseIcon :size="16" :type="item.icon" class="iconfont" />-->
+              <!--              <BaseIcon :size="16" :type="item.icon" class="iconfont" />-->
               <span class="menu-title">{{ item.name }}</span>
             </li>
           </router-link>

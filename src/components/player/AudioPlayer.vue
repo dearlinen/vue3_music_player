@@ -35,10 +35,10 @@ const handleCanPlay = () => {
 }
 
 const handleTimeUpdate = (e) => {
-  throttle(()=>{
+  throttle(() => {
     musicStore.setCurrentTime(e.target.currentTime)
     playedTime.value = e.target.currentTime
-  },1000)()
+  }, 1000)()
 }
 
 
@@ -47,7 +47,7 @@ const handleMainBtnClick = () => {
   if (isPlaying.value) {
     musicStore.setIsPlaying(false)
   } else {
-    musicStore.setIsPlaying(true)
+    audioPlay(currentSong.value.url)
   }
 }
 
@@ -89,17 +89,9 @@ const handleVolumeChange = (newVolume) => {
 watch(currentSong, async (newSong) => {
   if (newSong) {
     handleMediaSession(newSong)
-    songReady.value = false
     musicStore.setCurrentTime(0)
-    const promise = audioEl.value.play()
-    promise
-        .then(() => {
-          songReady.value = true
-          audioPlay()
-        })
-        .catch((err) => {
-          console.log(err)
-        })
+    await nextTick()
+    await audioPlay(newSong.url)
   }
 })
 
@@ -111,8 +103,7 @@ const playedText = computed(() => {
 watch(isPlaying, async (newPlaying) => {
   await nextTick()
   if (newPlaying) {
-    audioEl.value.src = currentSong.value.url
-    audioPlay()
+    await audioPlay(newPlaying)
   } else {
     audioPause()
   }
@@ -165,9 +156,14 @@ const handleMediaSession = (currentSong) => {
 
 // control button event
 
-const audioPlay = () => {
+const audioPlay = async (src) => {
+  audioEl.value.src = currentSong.value.url
   if (songReady.value) {
-    audioEl.value.play()
+    try {
+      await audioEl.value.play()
+    }catch (e) {
+      await audioEl.value.play()
+    }
   }
 
 }

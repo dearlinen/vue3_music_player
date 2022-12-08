@@ -124,10 +124,10 @@ export const getCaptchaCache = ()=>{
 }
 
 
-export const setFlagCache = flag => {
-    setStorage(storageKey.flag, flag)
+export const setFlagCache = (id,flag) => {
+    setStorage(storageKey.flag+id, flag)
 }
 
-export const getFlagCache = () => {
-    return getStorage(storageKey.flag)
+export const getFlagCache = (id) => {
+    return getStorage(storageKey.flag+id)
 }

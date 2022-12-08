@@ -1,17 +1,23 @@
 <script setup>
-import {ref, watch, watchEffect} from 'vue'
+import {computed, onUpdated, ref, watch} from 'vue'
 import {useMusicStore} from "@/store/music/music.js";
 import {getSongLyric} from "@/api/public/song.js";
 import {message} from "@/base/message.js";
 import {storeToRefs} from "pinia";
-import {throttle, throttleByFlag} from "utils/debounce.js";
+import {throttleByDate} from "utils/debounce.js";
+import {searchLyricOrder} from "utils/publicTools.js";
 
 const musicStore = useMusicStore()
 const {currentSong, currentTime} = storeToRefs(musicStore)
-const lyric = ref('')
+const lyric = ref([])
 const hasLyric = ref(false)
 const lyricMessage = ref('歌词加载中')
 const highlightLine = ref('0')
+
+const lyricMod = ref({})
+const timeLines = computed(() => {
+  return Object.keys(lyric.value).map(e => +e)
+})
 
 let scrollWatcher = null
 
@@ -20,28 +26,37 @@ function mergeLyric(lyric) {
 
   if (lyric?.lrc) {
     const rawLyricArr = lyric.lrc.lyric.split('\n')
-    lyricObj['rawLyric'] = formatLyric(rawLyricArr)
+    if (/纯音乐，请欣赏/.test(lyric.lrc.lyric)) {
+      lyricMessage.value = '纯音乐，请欣赏'
+      return
+    }
+    formatLyric(rawLyricArr, 'lrc')
   }
 
   if (lyric?.tlyric) {
     const transLyricArr = lyric.tlyric.lyric.split('\n')
-    lyricObj['transLyric'] = formatLyric(transLyricArr)
+    formatLyric(transLyricArr, 'tlrc')
   }
-  if (lyric?.romaLrc) {
-    const romaLyricArr = lyric.romaLrc.lyric.split('\n')
-    lyricObj['romaLyric'] = formatLyric(romaLyricArr)
+  if (lyric?.romalrc) {
+    const romaLyricArr = lyric.romalrc.lyric.split('\n')
+    formatLyric(romaLyricArr, 'rlrc')
   }
 
-  function formatLyric(lyricArr) {
-    const lyricObj = {}
+  function formatLyric(lyricArr, key) {
     const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})]/
     lyricArr.forEach(item => {
       const time = item.match(regex)
       if (time) {
-        const min = +time[1] * 60
-        const sec = +time[2]
-        const timeTotal = min + sec
-        lyricObj[timeTotal] = item.replace(regex, '')
+        const min = +time[1] * 60 * 1000
+        const sec = +time[2] * 1000
+        const ms = +time[3]
+        const timeTotal = min + sec + ms
+        const content = item.replace(regex, '').trim()
+        if (lyricObj[timeTotal]) {
+          lyricObj[timeTotal][key] = content
+        } else {
+          lyricObj[timeTotal] = {[key]: content}
+        }
       }
     })
 
@@ -52,52 +67,88 @@ function mergeLyric(lyric) {
 }
 
 async function initLyric() {
-  const localLyric = musicStore.currentSong.lyric
+  let localLyric = ''
+
+  //获取本地歌词
+  if (musicStore.isPlaying) {
+    localLyric = musicStore.currentSong?.lyric
+    hasLyric.value = true
+  } else {
+    lyricMessage.value = '暂无播放音乐'
+    hasLyric.value = false
+    return
+  }
+
   if (localLyric) {
     lyric.value = localLyric
   } else {
-    const [err, res] = await getSongLyric(musicStore.currentSong.id)
-    if (err) {
-      message.error('获取歌词失败')
-      lyricMessage.value = '获取歌词失败'
-    } else {
-      musicStore.setLyric(res)
-      lyric.value = mergeLyric(res)
-
-      if (!lyric.value.rawLyric) {
-        lyricMessage.value = '暂无歌词'
-      } else if (lyric.value.rawLyric.length < 3) {
-        lyricMessage.value = '纯音乐，无歌词'
-      } else {
-        hasLyric.value = true
-        scrollWatcher = watch(currentTime, scrollToLyric)
-      }
-    }
-  }
-
-  function scrollToLyric(newTime, oldTime) {
-    if (hasLyric.value) {
-      const time = Math.floor(newTime) + ''
-      const lyricDom = document.querySelector(`[data-time="${time}"]`)
-      console.debug([time, lyricDom])
-
-      throttleByFlag(() => {
-        if (lyricDom) {
-          highlightLine.value = time
-          lyricDom.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-          })
-        }
-      }, time)
-    }
-
+    await getLyric(currentSong.value.id)
   }
 }
 
-watchEffect(currentSong, () => {
+async function getLyric(songID) {
+  const [err, res] = await getSongLyric(musicStore.currentSong.id)
+  if (err) {
+    message.error('获取歌词失败')
+    hasLyric.value = false
+    lyricMessage.value = '获取歌词失败'
+  } else {
+    musicStore.setLyric(res)
+    lyric.value = mergeLyric(res)
+    if (!lyric.value) {
+      lyricMessage.value = '暂无歌词'
+    } else {
+      hasLyric.value = true
+    }
+  }
+}
+
+function scrollToLyric(newTime, oldTime) {
+
+  let date = new Date().getTime()
+  // 设置watcher以滚动歌词
+  scrollWatcher = watch(currentTime, (newTime, oldTime) => {
+    const offset = Math.abs(new Date().getTime() - date)
+    console.log('offset', offset)
+      const time = Math.floor(newTime * 1000)
+    if (offset >= 10000) {
+      const index = searchLyricOrder(timeLines.value, time)
+      scroll(index)
+      date = new Date().getTime()
+    } else {
+      scroll(time)
+    }
+
+
+  })
+
+  function scroll(time) {
+    if (hasLyric.value) {
+      const lyricDom = document.querySelector(`[data-time="${time}"]`)
+      if (lyricDom) {
+        highlightLine.value = String(time)
+        console.log(highlightLine.value)
+        lyricDom.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
+        })
+      }
+
+    }
+
+  }
+
+}
+
+onUpdated(() => {
+  //页面状态改变，清除之前的watcher
+  if (scrollToLyric) {
+    scrollToLyric()
+  }
   initLyric()
 })
+
 
 initLyric()
 
@@ -105,14 +156,38 @@ initLyric()
 
 
 <template>
-  <div class="lyric-page">
+  <div class="lyrics-page">
+
+
+    <div class="lyric-background dynamic-background">
+      <div>
+        <p>lorem</p>
+      </div>
+    </div>
+
+    <div class="left-side">
+      <div>
+        <div class="cover">
+          <div class="cover-container">
+            <el-image :src="currentSong.albumPic" loading="lazy"/>
+            <!--            <div-->
+            <!--                class="shadow"-->
+            <!--                :style="{ backgroundImage: `url(${imageUrl})` }"-->
+            <!--            ></div>-->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="lyric-wrap">
       <transition name="slide-fade">
         <div
             class="lyrics-container"
         >
+
           <div
-              v-for="(val,key) in lyric.rawLyric"
+              v-if="hasLyric"
+              v-for="(val,key) in lyric"
               :key="key"
               class="lyric-item"
               :class="{highlight: highlightLine === key}"
@@ -120,13 +195,25 @@ initLyric()
           >
 
             <div class="content">
+              <span>
+<!--            {{highlightLine}}-{{key}}-->
+                {{ val.lrc }}
+              </span>
               <span class="translation">
-                {{ val }}
+                {{ val.tlrc }}
+              </span>
+              <span class="translation">
+                {{ val.rlrc }}
               </span>
             </div>
           </div>
+          <div v-else>
+            <span>{{ lyricMessage }}</span>
+          </div>
         </div>
       </transition>
+
+
     </div>
   </div>
 
@@ -141,7 +228,7 @@ initLyric()
   left: 0;
   bottom: 0;
   z-index: 200;
-  background: var(--color-body-bg);
+  background: var(--body-bgcolor);
   display: flex;
   clip: rect(auto, auto, auto, auto);
 }
@@ -298,7 +385,7 @@ initLyric()
 
       .slider {
         width: 100%;
-        flex-grow: grow;
+        //flex-grow: grow;
         padding: 0 10px;
       }
 

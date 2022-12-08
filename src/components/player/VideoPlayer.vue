@@ -2,7 +2,11 @@
 
 import {ref} from "vue";
 
-const videoEl = ref('')
+const videoEl = ref(null)
+
+videoEl.value.addEventListener('timeupdate', (e) => {
+  console.log(e.target.currentTime)
+})
 
 
 </script>
