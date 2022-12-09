@@ -42,11 +42,13 @@ export const musicAction = {
     playNext() {
 
         const loop = () => {
-            if (this.currentPlayIndex === this.playlist.length - 1) {
-                this.currentPlayIndex = 0;
-                this.currentSong = {...this.playlist[this.currentPlayIndex]};
+            const nextIndex = this.currentPlayIndex+1
+            const nextSong = this.playlist[nextIndex];
+            if (nextSong) {
+                this.currentPlayIndex=nextIndex;
+                this.currentSong = {...nextSong};
             } else {
-                this.currentPlayIndex++;
+                this.currentPlayIndex = 0;
                 this.currentSong = {...this.playlist[this.currentPlayIndex]};
             }
         }

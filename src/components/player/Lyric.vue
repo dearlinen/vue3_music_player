@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onUpdated, ref, watch} from 'vue'
+import {computed, onUpdated, ref, watch, watchEffect} from 'vue'
 import {useMusicStore} from "@/store/music/music.js";
 import {getSongLyric} from "@/api/public/song.js";
 import {message} from "@/base/message.js";
@@ -107,20 +107,21 @@ function scrollToLyric(newTime, oldTime) {
 
   let date = new Date().getTime()
   // 设置watcher以滚动歌词
-  scrollWatcher = watch(currentTime, (newTime, oldTime) => {
-    const offset = Math.abs(new Date().getTime() - date)
-    console.log('offset', offset)
-      const time = Math.floor(newTime * 1000)
-    if (offset >= 10000) {
-      const index = searchLyricOrder(timeLines.value, time)
-      scroll(index)
-      date = new Date().getTime()
-    } else {
-      scroll(time)
-    }
+  // scrollWatcher = watch(currentTime, (newTime, oldTime) => {
+  const offset = Math.abs(new Date().getTime() - date)
+  const time = Math.floor(newTime * 1000)
+  console.log('offset', offset)
+  if (offset >= 0) {
+    const index = searchLyricOrder(timeLines.value, time)
+    scroll(index)
+    date = new Date().getTime()
+  } else {
+    scroll(time)
+    date = new Date().getTime()
+  }
 
 
-  })
+  // })
 
   function scroll(time) {
     if (hasLyric.value) {
@@ -141,11 +142,17 @@ function scrollToLyric(newTime, oldTime) {
 
 }
 
+watch(currentTime, (newTime, oldTime) => {
+  console.log(newTime, oldTime)
+  scrollToLyric(newTime, oldTime)
+})
+
 onUpdated(() => {
   //页面状态改变，清除之前的watcher
-  if (scrollToLyric) {
-    scrollToLyric()
-  }
+  // if (scrollWatcher) {
+  //   scrollWatcher()
+  // }
+  scrollToLyric()
   initLyric()
 })
 

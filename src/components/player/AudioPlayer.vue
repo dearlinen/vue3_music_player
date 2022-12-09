@@ -9,7 +9,7 @@ import TimeSlider from "@/components/player/audioControll/TimeSlider.vue";
 import {formatPlayedTime} from '@/utils/publicTools.js';
 
 import {storeToRefs} from "pinia";
-import {throttle} from "utils/debounce.js";
+import {throttle, throttleByDate} from "utils/debounce.js";
 
 const musicStore = useMusicStore()
 
@@ -35,19 +35,25 @@ const handleCanPlay = () => {
 }
 
 const handleTimeUpdate = (e) => {
-  throttle(() => {
+  const setStateTime = () => {
     musicStore.setCurrentTime(e.target.currentTime)
     playedTime.value = e.target.currentTime
-  }, 1000)()
+  }
+  const throttleTime = throttleByDate(setStateTime, 1000)
+
+  throttleTime()
 }
 
 
 //控制事件
 const handleMainBtnClick = () => {
+  console.log('main')
   if (isPlaying.value) {
+    audioPause()
     musicStore.setIsPlaying(false)
   } else {
-    audioPlay(currentSong.value.url)
+    audioPlay()
+    musicStore.setIsPlaying(true)
   }
 }
 
@@ -88,9 +94,11 @@ const handleVolumeChange = (newVolume) => {
 //侦听
 watch(currentSong, async (newSong) => {
   if (newSong) {
+    audioEl.value.src = currentSong.value.url
     handleMediaSession(newSong)
     musicStore.setCurrentTime(0)
-    await nextTick()
+
+    // await nextTick()
     await audioPlay(newSong.url)
   }
 })
@@ -100,14 +108,14 @@ const playedText = computed(() => {
 })
 
 
-watch(isPlaying, async (newPlaying) => {
-  await nextTick()
-  if (newPlaying) {
-    await audioPlay(newPlaying)
-  } else {
-    audioPause()
-  }
-})
+// watch(isPlaying, async (newPlaying) => {
+//   await nextTick()
+//   if (newPlaying) {
+//     await audioPlay(newPlaying)
+//   } else {
+//     audioPause()
+//   }
+// })
 
 
 // mediaSession
@@ -156,12 +164,12 @@ const handleMediaSession = (currentSong) => {
 
 // control button event
 
-const audioPlay = async (src) => {
-  audioEl.value.src = currentSong.value.url
+const audioPlay = async () => {
   if (songReady.value) {
     try {
       await audioEl.value.play()
-    }catch (e) {
+    } catch (e) {
+      console.log('player error',e)
       await audioEl.value.play()
     }
   }
