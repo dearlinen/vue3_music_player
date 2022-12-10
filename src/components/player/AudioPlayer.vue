@@ -1,5 +1,5 @@
 <script setup>
-import {computed, nextTick, ref, watch} from "vue";
+import {computed, nextTick, onMounted, ref, watch} from "vue";
 import {getVolume} from "utils/stroageController.js";
 
 import {useMusicStore} from '@/store/music/music.js'
@@ -20,40 +20,110 @@ const songReady = ref(false)
 const playerSHow = ref(false)
 const playedTime = ref(0)
 const isAlbumShow = ref(false)
-
+const isAutoPlay = ref(false)
 
 const {currentSong, playlist, currentTime, playMode, isPlaying} = storeToRefs(musicStore)
 
 
 // audio元素事件
-const handleEnded = () => {
-  handleNextClick()
-}
 
-const handleCanPlay = () => {
-  songReady.value = true
-}
 
-const handleTimeUpdate = (e) => {
-  const setStateTime = () => {
-    musicStore.setCurrentTime(e.target.currentTime)
-    playedTime.value = e.target.currentTime
+const audioEventListeners = {
+  canplay() {
+    songReady.value = true
+  },
+  timeupdate(e) {
+    const setStateTime = () => {
+      musicStore.setCurrentTime(e.target.currentTime)
+      playedTime.value = e.target.currentTime
+    }
+    const throttleTime = throttleByDate(setStateTime, 1000)
+    throttleTime()
+  },
+  ended() {
+    controlHandlers.next()
+  },
+  error(e) {
+    console.log('play error ', e)
+  },
+  pause() {
+    console.log('ele pause')
+    isPlaying.value = false
+  },
+  play() {
+    console.log('ele play')
+    isPlaying.value = true
   }
-  const throttleTime = throttleByDate(setStateTime, 1000)
-
-  throttleTime()
 }
 
+const controlHandlers = {
+  play() {
+    if (songReady.value) {
+      const playPromise = audioEl.value.play()
+      if (playPromise) {
+        playPromise
+            .then(() => {
+              isPlaying.value = true
+            })
+            .catch((e) => {
+              console.log('debug play error',e)
+              isPlaying.value = false
+            })
+      }
+    } else {
+      isPlaying.value = false
+    }
+  },
+  pause() {
+    audioEl.value.pause()
+  },
+  next() {
+    if (playMode.value === 'single') {
+      audioEl.value.currentTime = 0
+      audioEl.value.play()
+      currentTime.value = 0
+    } else {
+      musicStore.playNext()
+    }
+  },
+  prev() {
+    if (playMode.value === 'single') {
+      audioEl.value.currentTime = 0
+      audioEl.value.play()
+    } else {
+      musicStore.playPrev()
+    }
+  },
+  changeMode(e) {
+    musicStore.changePlayMode(e)
+  },
+  changeVolume(value) {
+    volume.value = value
+    audioEl.value.volume = value
+  },
+  changeTime(value) {
+    audioEl.value.currentTime = value
+  },
+  changeShow() {
+    playerSHow.value = !playerSHow.value
+  },
+  changeAlbumShow() {
+    isAlbumShow.value = !isAlbumShow.value
+  },
+  toggleMainButton() {
+    console.log('main')
+    if (isPlaying.value) {
+      this.pause()
+    } else {
+      this.play()
+    }
 
-//控制事件
-const handleMainBtnClick = () => {
-  console.log('main')
-  if (isPlaying.value) {
-    audioPause()
-    musicStore.setIsPlaying(false)
-  } else {
-    audioPlay()
-    musicStore.setIsPlaying(true)
+  },
+  timeInput(newTime) {
+    audioEl.value.currentTime = newTime
+  },
+  volumeChange(newVolume) {
+    audioEl.value.volume = newVolume
   }
 }
 
@@ -62,60 +132,19 @@ const handlePlaylistClick = () => {
   console.log('playlist')
 }
 
-const handleNextClick = () => {
-  if (playMode.value === 'single') {
-    audioEl.value.currentTime = 0
-    audioEl.value.play()
-  } else {
-    musicStore.playNext()
-  }
-}
-
-const handlePrevClick = () => {
-  if (playMode.value === 'single') {
-    audioEl.value.currentTime = 0
-    audioEl.value.play()
-  } else {
-    musicStore.playPrev()
-  }
-}
-
-
-//滑块事件
-const handleTimeInput = (newTime) => {
-  audioEl.value.currentTime = newTime
-}
-
-const handleVolumeChange = (newVolume) => {
-  audioEl.value.volume = newVolume
-}
-
 
 //侦听
 watch(currentSong, async (newSong) => {
+  console.log('current song update', newSong)
   if (newSong) {
     audioEl.value.src = currentSong.value.url
     handleMediaSession(newSong)
     musicStore.setCurrentTime(0)
 
-    // await nextTick()
-    await audioPlay(newSong.url)
+    await nextTick()
+    controlHandlers.play()
   }
 })
-
-const playedText = computed(() => {
-  return formatPlayedTime(currentTime.value)
-})
-
-
-// watch(isPlaying, async (newPlaying) => {
-//   await nextTick()
-//   if (newPlaying) {
-//     await audioPlay(newPlaying)
-//   } else {
-//     audioPause()
-//   }
-// })
 
 
 // mediaSession
@@ -137,11 +166,11 @@ const handleMediaSession = (currentSong) => {
     })
 
     navigator.mediaSession.setActionHandler('play', () => {
-      musicStore.setIsPlaying(true)
+      audioPlay()
     })
 
     navigator.mediaSession.setActionHandler('pause', () => {
-      musicStore.setIsPlaying(false)
+      audioPause()
     })
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
@@ -164,26 +193,26 @@ const handleMediaSession = (currentSong) => {
 
 // control button event
 
-const audioPlay = async () => {
-  if (songReady.value) {
-    try {
-      await audioEl.value.play()
-    } catch (e) {
-      console.log('player error',e)
-      await audioEl.value.play()
-    }
-  }
-
-}
-const audioPause = () => {
-  musicStore.setIsPlaying(false)
-  audioEl.value.pause()
-}
-
 
 const toggleAlbumShow = () => {
   isAlbumShow.value = !isAlbumShow.value
 }
+
+const playedText = computed(
+    ()=>{
+      return formatPlayedTime(currentTime.value)
+    }
+)
+
+onMounted(() => {
+  const element = audioEl.value
+  element.volume = volume.value
+  audioEl.value.addEventListener('ended', audioEventListeners.ended)
+  audioEl.value.addEventListener('canplay', audioEventListeners.canplay)
+  audioEl.value.addEventListener('timeupdate', audioEventListeners.timeupdate)
+  element.addEventListener('pause', audioEventListeners.pause)
+  element.addEventListener('error', audioEventListeners.error)
+})
 </script>
 
 
@@ -221,12 +250,12 @@ const toggleAlbumShow = () => {
     </div>
     <!--     控制台-->
     <div class="control">
-      <BaseIcon type="arrow-back" :size="24" class="icon" @click="handlePrevClick"/>
-      <div @click="handleMainBtnClick" class="play-icon" slot="reference">
+      <BaseIcon type="arrow-back" :size="24" class="icon" @click="controlHandlers.prev()"/>
+      <div @click="controlHandlers.toggleMainButton()" class="play-icon" slot="reference">
         <BaseIcon type="pause" :size="24" v-if="isPlaying"/>
         <BaseIcon type="play" :size="24" v-else/>
       </div>
-      <BaseIcon type="arrow-forward" :size="24" class="icon" @click="handleNextClick"/>
+      <BaseIcon type="arrow-forward" :size="24" class="icon" @click="controlHandlers.next()"/>
     </div>
     <!--     控制台结束-->
 
@@ -245,19 +274,16 @@ const toggleAlbumShow = () => {
       <BaseIcon :size="20" @btnClick="handlePlaylistClick" type="playlist" class="mode-item"/>
       <!-- 音量 -->
       <div class="volume-item">
-        <VolumeSlider @volume-change="handleVolumeChange"/>
+        <VolumeSlider @volume-change="controlHandlers.volumeChange"/>
       </div>
     </div>
     <!--    模式和歌单结束-->
     <!--     进度条-->
     <div class="progress-bar-wrap">
-      <TimeSlider :plyedTime="playedTime" @time-input="handleTimeInput"/>
+      <TimeSlider :plyedTime="playedTime" @time-input="controlHandlers.timeInput"/>
     </div>
     <!--     进度条结束-->
     <audio
-        @canplay="handleCanPlay"
-        @ended="handleEnded"
-        @timeupdate="handleTimeUpdate"
         :src="currentSong.url"
         ref="audioEl"
     ></audio>

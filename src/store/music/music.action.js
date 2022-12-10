@@ -14,6 +14,7 @@ export const musicAction = {
         const {id} = rawData
         const [err, res] = await getSongUrl(id);
         const hasCurrentIndex = comparePlaylist(this.playlist, rawData);
+        console.log('debug has',hasCurrentIndex)
         const songData = {...rawData, url: res.data[0].url}
         if (err) {
             message.error('获取歌曲链接失败', err);
@@ -88,6 +89,9 @@ export const musicAction = {
     },
     setIsPlaying(playingState) {
         this.isPlaying = playingState
+    },
+    changePlayMode(mode){
+        this.playMode=mode
     }
 
 }

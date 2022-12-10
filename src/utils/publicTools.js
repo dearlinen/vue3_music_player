@@ -1,4 +1,7 @@
+import {getFlagCache, setFlagCache} from "utils/stroageController.js";
+
 export const comparePlaylist = (arr, obj) => {
+    console.log('compare debug',[arr,obj])
     return arr.findIndex(item => item.id === obj.id)
 }
 
@@ -90,14 +93,34 @@ export const searchLyricOrder = (lyric, currentTime) => {
         let mid = Math.floor((left + right) / 2);
         if (lyric[mid] === currentTime) {
             return lyric[mid];
-        }
-        else if (lyric[mid] < currentTime) {
+        } else if (lyric[mid] < currentTime) {
             left = mid + 1;
-        }
-        else if (lyric[mid] > currentTime) {
+        } else if (lyric[mid] > currentTime) {
             right = mid - 1;
         }
     }
 
     return lyric[right];
+}
+
+//包装调用获取歌词的函数
+
+export const lyricFlag = (lyric, currentTime) => {
+    const localTimeCache = getFlagCache()
+    if (currentTime===undefined) {
+        return null
+    }
+    console.debug('debug time',currentTime)
+    const time = Number(currentTime.toFixed(3)) * 1000
+    const searchLyric = searchLyricOrder(lyric, time);
+    if (searchLyric === null) {
+        return null;
+    }
+
+    if (searchLyric === localTimeCache) {
+        return null
+    }
+
+    setFlagCache(searchLyric)
+    return searchLyric;
 }

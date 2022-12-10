@@ -5,7 +5,7 @@ import {getSongLyric} from "@/api/public/song.js";
 import {message} from "@/base/message.js";
 import {storeToRefs} from "pinia";
 import {throttleByDate} from "utils/debounce.js";
-import {searchLyricOrder} from "utils/publicTools.js";
+import {lyricFlag, searchLyricOrder} from "utils/publicTools.js";
 
 const musicStore = useMusicStore()
 const {currentSong, currentTime} = storeToRefs(musicStore)
@@ -105,23 +105,10 @@ async function getLyric(songID) {
 
 function scrollToLyric(newTime, oldTime) {
 
-  let date = new Date().getTime()
-  // 设置watcher以滚动歌词
-  // scrollWatcher = watch(currentTime, (newTime, oldTime) => {
-  const offset = Math.abs(new Date().getTime() - date)
-  const time = Math.floor(newTime * 1000)
-  console.log('offset', offset)
-  if (offset >= 0) {
-    const index = searchLyricOrder(timeLines.value, time)
-    scroll(index)
-    date = new Date().getTime()
-  } else {
-    scroll(time)
-    date = new Date().getTime()
+  const flag = lyricFlag(timeLines.value, newTime)
+  if (flag) {
+    scroll(flag)
   }
-
-
-  // })
 
   function scroll(time) {
     if (hasLyric.value) {
@@ -143,15 +130,13 @@ function scrollToLyric(newTime, oldTime) {
 }
 
 watch(currentTime, (newTime, oldTime) => {
-  console.log(newTime, oldTime)
-  scrollToLyric(newTime, oldTime)
+  if (newTime) {
+    scrollToLyric(newTime, oldTime)
+  }
 })
 
 onUpdated(() => {
-  //页面状态改变，清除之前的watcher
-  // if (scrollWatcher) {
-  //   scrollWatcher()
-  // }
+  console.log('onUpdated')
   scrollToLyric()
   initLyric()
 })
